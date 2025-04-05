@@ -1,0 +1,214 @@
+/* src/pages/Login.css */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+:root {
+  --primary-blue: #2a4e6e;
+  --accent-orange: #e67e22;
+  --light-gray: #f5f5f5;
+  --dark-text: #333333;
+}
+
+.login-container {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.9), 
+      rgba(255, 255, 255, 0.9)
+    ),
+    url('../assets/R.png');
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 120rem;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.login-content-wrapper {
+  max-width: 100%;
+  padding-left: 15rem;
+  padding-right: 15rem;
+  padding-bottom: 8rem;
+  padding-top:2rem;
+  /* background-color: white; */
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--primary-blue);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+}
+
+.remember-me input {
+  margin-right: 0.5rem;
+  accent-color: var(--accent-orange);
+}
+
+.remember-me label {
+  color: var(--dark-text);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.forgot-password {
+  color: var(--accent-orange);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.forgot-password:hover {
+  color: #d35400;
+  text-decoration: underline;
+}
+
+.login-divider {
+  height: 2px;
+  width: 80px;
+  background-color: var(--accent-orange);
+  margin: 1.5rem auto;
+  opacity: 0.7;
+}
+
+.login-button {
+  width: 100%;
+  padding: 0.9rem;
+  background-color: var(--accent-orange);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 1rem;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.login-button:hover {
+  background-color: #d35400;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--dark-text);
+  font-size: 0.95rem;
+}
+
+.register-link-text {
+  color: var(--accent-orange);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.register-link-text:hover {
+  color: #d35400;
+  text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .login-content-wrapper {
+    padding: 2rem;
+  }
+  
+  .login-title {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-content-wrapper {
+    padding: 1.5rem;
+  }
+  
+  .login-title {
+    font-size: 1.4rem;
+  }
+  
+  .form-group input {
+    padding: 0.8rem;
+  }
+  
+  .login-button {
+    padding: 0.8rem;
+  }
+}
+/* Add to src/pages/Login.css */
+.form-select {
+    width: 100%;
+    padding: 0.9rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-family: 'Montserrat', sans-serif;
+    background-color: white;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a4e6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1rem;
+  }
+  
+  .form-select:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+  }
+  
+  /* Adjust spacing for register form */
+  .register-form .form-group {
+    margin-bottom: 1.2rem;
+  }
