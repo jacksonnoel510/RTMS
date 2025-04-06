@@ -5,6 +5,9 @@ class VehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
         fields = '__all__'
+        extra_kwargs = {
+            'vehicle_image': {'required': False}  # Make image optional
+        }
 
 class WeightReadingSerializer(serializers.ModelSerializer):
     class Meta:

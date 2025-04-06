@@ -8,6 +8,7 @@ class Vehicle(models.Model):
     vehicle_image = models.ImageField(upload_to='vehicle_images/', null=True, blank=True)
     vehicle_id = models.CharField(max_length=20)
     description = models.CharField(max_length=255)
+    driver= models.CharField(max_length=100 ,null=True)
     owner = models.CharField(max_length=100)
     last_reported_weight = models.FloatField(default=0.0)
     max_allowed_weight = models.FloatField(default=0.0)

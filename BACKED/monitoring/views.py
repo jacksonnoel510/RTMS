@@ -6,11 +6,13 @@ from .models import Vehicle, Alert, WeightReading, Report
 from .serializers import VehicleSerializer, WeightReadingSerializer, AlertSerializer, ReportSerializer
 from django.core.mail import send_mail
 from django.core.mail import EmailMessage
+from rest_framework.pagination import PageNumberPagination
 
 class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
-
+    pagination_class = PageNumberPagination
+    
     def perform_create(self, serializer):
         instance= serializer.save()
         self.check_weight_alert(instance)
