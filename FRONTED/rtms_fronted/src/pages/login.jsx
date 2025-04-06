@@ -60,7 +60,8 @@ function Login() {
           <div className="login-divider"></div>
           
           <button type="submit" className="login-button">
-            Login
+          <Link to="/dashboard" className="register-link-text"> Login</Link>
+           
           </button>
         </form>
         
