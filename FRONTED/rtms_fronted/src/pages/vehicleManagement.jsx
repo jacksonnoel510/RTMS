@@ -90,7 +90,7 @@ function VehicleManagement() {
         driver: 'John Doe', 
         status: 'active', 
         lastService: '2023-05-15',
-        photoUrl: '/vehicle-placeholder.jpg',
+        photoUrl: '/R.jpeg',
         history: [
           { date: '2023-05-15', event: 'Routine Maintenance', details: 'Oil change and inspection' },
           { date: '2023-03-10', event: 'Tire Replacement', details: 'All tires replaced' }
@@ -229,9 +229,9 @@ function VehicleManagement() {
             <li className="active">
               <Link to="/vehicle-management"><FiTruck className="nav-icon" /> Vehicle Management</Link>
             </li>
-            <li>
+            {/* <li>
               <Link to="/alerts"><FiAlertTriangle className="nav-icon" /> Alerts</Link>
-            </li>
+            </li> */}
             <li>
               <Link to="/reports"><FiPieChart className="nav-icon" /> Reports</Link>
             </li>

@@ -97,9 +97,9 @@ function Dashboard() {
             <li>
               <Link to="/vehicle-management"><FiTruck className="nav-icon" /> Vehicle Management</Link>
             </li>
-            <li>
+            {/* <li>
               <Link to="/alerts"><FiAlertTriangle className="nav-icon" /> Alerts</Link>
-            </li>
+            </li> */}
             <li>
               <Link to="/reports"><FiPieChart className="nav-icon" /> Reports</Link>
             </li>

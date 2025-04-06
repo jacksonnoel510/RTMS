@@ -21,6 +21,9 @@ import { Chart as ChartJS,
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { FiBell, FiCheck, FiX, FiSend } from 'react-icons/fi';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Register ChartJS components
 ChartJS.register(
@@ -223,7 +226,50 @@ function VehicleReports() {
   useEffect(() => {
     loadReportData();
   }, []);
-
+  const NotifyAction = ({ alert, onNotificationSent }) => {
+    const [isNotifying, setIsNotifying] = useState(false);
+    const [notificationStatus, setNotificationStatus] = useState(null);
+  
+    const handleNotify = async () => {
+      setIsNotifying(true);
+      setNotificationStatus(null);
+      
+      try {
+        // Mock API call - replace with actual implementation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setNotificationStatus('success');
+        onNotificationSent(alert.id);
+        toast.success(`Notification sent for ${alert.vehicleId}`);
+      } catch (error) {
+        setNotificationStatus('failed');
+        toast.error('Failed to send notification');
+      } finally {
+        setIsNotifying(false);
+      }
+    };
+  
+    return (
+      <div className="notification-action">
+        {notificationStatus === 'success' ? (
+          <span className="notification-success">
+            <FiCheck /> Sent
+          </span>
+        ) : notificationStatus === 'failed' ? (
+          <span className="notification-failed">
+            <FiX /> Failed
+          </span>
+        ) : (
+          <button 
+            className={`notify-btn ${alert.status}`}
+            onClick={handleNotify}
+            disabled={isNotifying}
+          >
+            {isNotifying ? 'Sending...' : <FiBell />}
+          </button>
+        )}
+      </div>
+    );
+  };
   return (
     <div className="vehicle-management-container">
       {/* Sidebar */}
@@ -242,9 +288,9 @@ function VehicleReports() {
             <li>
               <Link to="/vehicle-management"><FiTruck className="nav-icon" /> Vehicle Management</Link>
             </li>
-            <li>
+            {/* <li>
               <Link to="/alerts"><FiAlertTriangle className="nav-icon" /> Alerts</Link>
-            </li>
+            </li> */}
             <li className="active">
               <Link to="/reports"><FiBarChart2 className="nav-icon" /> Reports</Link>
             </li>
@@ -414,7 +460,7 @@ function VehicleReports() {
                           </td>
                           <td>{alert.time}</td>
                           <td>
-                            <span className={`status-badge ${alert.status}`}>
+                            <span className={`status-badge ${alert.status }`}>
                               {alert.status}
                             </span>
                           </td>
@@ -635,6 +681,8 @@ function VehicleReports() {
           )}
         </div>
       </div>
+      {/* Add this at the end of your main return statement */}
+{/* <ToastContainer position="bottom-right" autoClose={3000} /> */}
     </div>
   );
 }
