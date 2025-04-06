@@ -20,7 +20,14 @@
   min-height: 100vh;
   font-family: 'Montserrat', sans-serif;
   background-color: var(--light-gray);
-  width:115rem;
+  width:118rem;
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0.9), 
+    rgba(255, 255, 255, 0.9)
+  ),
+  url('../assets/R.png');
+background-size: cover;
+background-position: center;
 }
 
 .sidebar {

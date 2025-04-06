@@ -1,93 +1,125 @@
-// src/pages/Register.jsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import '../css/Login.css'; // Reusing the same CSS file
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import '../css/Login.css';
 
 function Register() {
   const [formData, setFormData] = useState({
-    fullName: '',
+    username: '',
     email: '',
-    phone: '',
-    userType: '',
+    first_name: '',
+    last_name: '',
     password: '',
-    confirmPassword: ''
+    password2: ''
   });
+
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log(formData);
+    setError('');
+
+    if (formData.password !== formData.password2) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await axios.post('http://localhost:8000/api/auth/register/', {
+        first_name: formData.first_name,
+        last_name: formData.last_name,    
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        password2: formData.password2
+      });
+
+      // Save tokens to localStorage
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
+      
+      navigate('/dashboard'); // Redirect to protected route
+    } catch (err) {
+      if (err.response?.data) {
+        // Handle Django validation errors
+        const errors = [];
+        for (const [field, messages] of Object.entries(err.response.data)) {
+          errors.push(`${field}: ${Array.isArray(messages) ? messages.join(' ') : messages}`);
+        }
+        setError(errors.join('\n'));
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="login-container">
       <div className="login-content-wrapper">
-        <h2 className="login-title">Register here</h2>
+        <h2 className="login-title">Register</h2>
+        
+        {error && <div className="error-message" style={{whiteSpace: 'pre-line'}}>{error}</div>}
         
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="fullName">Full name</label>
+        <div className="form-group">
+            <label htmlFor="username">FirstName*</label>
             <input
               type="text"
-              id="fullName"
-              name="fullName"
-              value={formData.fullName}
+              id="username"
+              name="first_name"
+              value={formData.first_name}
               onChange={handleChange}
               required
             />
           </div>
-          
           <div className="form-group">
-            <label htmlFor="email">Email address</label>
+            <label htmlFor="username">LastName*</label>
+            <input
+              type="text"
+              id="username"
+              name="last_name"
+              value={formData.last_name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+
+          <div className="form-group">
+            <label htmlFor="username">Username*</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              required
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="phone">Phone number</label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          {/* <div className="form-group">
-            <label htmlFor="userType">User type</label>
-            <select
-              id="userType"
-              name="userType"
-              value={formData.userType}
-              onChange={handleChange}
-              required
-              className="form-select"
-            >
-              <option value="">Select user type</option>
-              <option value="admin">Admin</option>
-              <option value="operator">Operator</option>
-              <option value="viewer">Viewer</option>
-            </select>
-          </div> */}
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Password*</label>
             <input
               type="password"
               id="password"
@@ -99,21 +131,19 @@ function Register() {
           </div>
           
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm password</label>
+            <label htmlFor="password2">Confirm Password*</label>
             <input
               type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
+              id="password2"
+              name="password2"
+              value={formData.password2}
               onChange={handleChange}
               required
             />
           </div>
           
-          <div className="login-divider"></div>
-          
-          <button type="submit" className="login-button">
-            Register
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? 'Registering...' : 'Register'}
           </button>
         </form>
         
