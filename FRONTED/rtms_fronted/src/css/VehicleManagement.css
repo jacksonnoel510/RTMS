@@ -1,0 +1,814 @@
+/* VehicleManagement.css */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary-blue: #2a4e6e;
+  --accent-orange: #e67e22;
+  --light-gray: #f8f9fa;
+  --dark-text: #333333;
+  --sidebar-width: 240px;
+  --warning-color: #e74c3c;
+  --success-color: #2ecc71;
+  --info-color: #3498db;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Base Layout */
+.vehicle-management-container {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Montserrat', sans-serif;
+  background-color: var(--light-gray);
+  width:115rem;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  position: fixed;
+  height: 100%;
+}
+
+.sidebar-header {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-header h2 {
+  color: var(--primary-blue);
+  font-size: 1.3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar-nav li {
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-nav li a {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  color: var(--dark-text);
+  text-decoration: none;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.sidebar-nav li a:hover {
+  background-color: rgba(42, 78, 110, 0.08);
+  color: var(--primary-blue);
+}
+
+.sidebar-nav li.active a {
+  background-color: rgba(42, 78, 110, 0.1);
+  color: var(--primary-blue);
+  font-weight: 600;
+}
+
+.nav-icon {
+  margin-right: 10px;
+  font-size: 1.1rem;
+}
+
+.sidebar-nav li.logout a {
+  color: var(--warning-color);
+}
+
+.sidebar-nav li.logout a:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: var(--sidebar-width);
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.content-header h1 {
+  color: var(--primary-blue);
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box input {
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-family: 'Montserrat', sans-serif;
+  width: 250px;
+  transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--dark-text);
+  opacity: 0.7;
+}
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background-color: var(--accent-orange);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-btn:hover {
+  background-color: #d35400;
+}
+
+/* Vehicle Table */
+.vehicle-grid {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+}
+
+.vehicle-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vehicle-table thead {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+.vehicle-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.vehicle-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.vehicle-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vehicle-table tr:hover {
+  background-color: rgba(42, 78, 110, 0.03);
+}
+
+.user-icon {
+  margin-right: 0.5rem;
+  opacity: 0.7;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.active {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: var(--success-color);
+}
+
+.status-badge.inactive {
+  background-color: rgba(149, 165, 166, 0.1);
+  color: #95a5a6;
+}
+
+.status-badge.maintenance {
+  background-color: rgba(230, 126, 34, 0.1);
+  color: var(--accent-orange);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn, .delete-btn {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-btn {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--info-color);
+}
+
+.edit-btn:hover {
+  background-color: rgba(52, 152, 219, 0.2);
+}
+
+.delete-btn {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--warning-color);
+}
+
+.delete-btn:hover {
+  background-color: rgba(231, 76, 60, 0.2);
+}
+
+.no-vehicles {
+  padding: 2rem;
+  text-align: center;
+  color: var(--dark-text);
+  opacity: 0.7;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal h2 {
+  color: var(--primary-blue);
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--dark-text);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.cancel-btn, .submit-btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  background-color: #ecf0f1;
+  color: var(--dark-text);
+}
+
+.cancel-btn:hover {
+  background-color: #ddd;
+}
+
+.submit-btn {
+  background-color: var(--accent-orange);
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #d35400;
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+}
+
+@media (max-width: 992px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+  
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .search-box input {
+    width: 100%;
+  }
+  
+  .vehicle-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .vehicle-management-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 1rem;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding: 1.5rem;
+  }
+  
+  .sidebar-nav ul {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+  }
+  
+  .sidebar-nav li {
+    margin-right: 0.5rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal {
+    width: 95%;
+    padding: 1.5rem;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .cancel-btn, .submit-btn {
+    width: 100%;
+  }
+}
+/* Add these new styles to your existing VehicleManagement.css */
+
+/* Bulk Actions */
+.bulk-actions-bar {
+    background-color: #f5f7fa;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    box-shadow: var(--box-shadow);
+  }
+  
+  .selected-count {
+    font-weight: 600;
+    color: var(--primary-blue);
+  }
+  
+  .bulk-actions {
+    display: flex;
+    gap: 0.8rem;
+  }
+  
+  .bulk-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .bulk-btn.active {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: var(--success-color);
+  }
+  
+  .bulk-btn.active:hover {
+    background-color: rgba(46, 204, 113, 0.2);
+  }
+  
+  .bulk-btn.inactive {
+    background-color: rgba(149, 165, 166, 0.1);
+    color: #95a5a6;
+  }
+  
+  .bulk-btn.inactive:hover {
+    background-color: rgba(149, 165, 166, 0.2);
+  }
+  
+  .bulk-btn.delete {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--warning-color);
+  }
+  
+  .bulk-btn.delete:hover {
+    background-color: rgba(231, 76, 60, 0.2);
+  }
+  
+  /* Export Buttons */
+  .action-buttons {
+    display: flex;
+    gap: 0.8rem;
+  }
+  
+  .export-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  
+  .export-btn.csv {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--info-color);
+  }
+  
+  .export-btn.csv:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+  }
+  
+  .export-btn.pdf {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--warning-color);
+  }
+  
+  .export-btn.pdf:hover {
+    background-color: rgba(231, 76, 60, 0.2);
+  }
+  
+  /* Vehicle Thumbnail */
+  .vehicle-thumbnail {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 0.8rem;
+    vertical-align: middle;
+  }
+  
+  /* Photo Upload */
+  .photo-upload {
+    margin-top: 0.5rem;
+  }
+  
+  .upload-area {
+    border: 2px dashed #ddd;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .upload-area:hover {
+    border-color: var(--accent-orange);
+    background-color: rgba(230, 126, 34, 0.05);
+  }
+  
+  .upload-icon {
+    font-size: 1.5rem;
+    color: var(--accent-orange);
+    margin-bottom: 0.5rem;
+  }
+  
+  .photo-preview {
+    position: relative;
+    width: 150px;
+    height: 100px;
+  }
+  
+  .photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+  }
+  
+  .remove-photo {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: var(--warning-color);
+    color: white;
+    border: none;
+    border-radius: 0 0 0 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  
+  /* History Modal */
+  .history-modal {
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--dark-text);
+  }
+  
+  .vehicle-info {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    align-items: center;
+  }
+  
+  .vehicle-photo {
+    width: 120px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+  }
+  
+  .info-details h3 {
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+  }
+  
+  .info-details p {
+    margin: 0.3rem 0;
+    color: var(--dark-text);
+  }
+  
+  .history-timeline {
+    border-left: 2px solid #eee;
+    padding-left: 1.5rem;
+    position: relative;
+  }
+  
+  .history-timeline h3 {
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+    padding-left: 0.5rem;
+  }
+  
+  .history-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  
+  .timeline-marker {
+    position: absolute;
+    left: -1.7rem;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--accent-orange);
+    border: 2px solid white;
+  }
+  
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.3rem;
+  }
+  
+  .event-date {
+    font-weight: 600;
+    color: var(--primary-blue);
+  }
+  
+  .event-type {
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--info-color);
+  }
+  
+  .event-type.routine {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: var(--success-color);
+  }
+  
+  .event-cost {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--accent-orange);
+  }
+  
+  .event-details {
+    color: var(--dark-text);
+    padding-left: 0.5rem;
+  }
+  
+  .no-history {
+    color: var(--dark-text);
+    opacity: 0.7;
+    font-style: italic;
+    padding-left: 0.5rem;
+  }
+  
+  /* Textarea Styles */
+  textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    font-family: 'Montserrat', sans-serif;
+    resize: vertical;
+    min-height: 80px;
+  }
+  
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+  }
+  
+  /* Action Buttons */
+  .action-btn {
+    padding: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 0 0.2rem;
+  }
+  
+  .action-btn.edit {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--info-color);
+  }
+  
+  .action-btn.edit:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+  }
+  
+  .action-btn.delete {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--warning-color);
+  }
+  
+  .action-btn.delete:hover {
+    background-color: rgba(231, 76, 60, 0.2);
+  }
+  
+  .action-btn.maintenance {
+    background-color: rgba(230, 126, 34, 0.1);
+    color: var(--accent-orange);
+  }
+  
+  .action-btn.maintenance:hover {
+    background-color: rgba(230, 126, 34, 0.2);
+  }
+  
+  .action-btn.history {
+    background-color: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+  }
+  
+  .action-btn.history:hover {
+    background-color: rgba(155, 89, 182, 0.2);
+  }

@@ -5,6 +5,7 @@ import App from './App';
 import Login from './pages/login';
 import Register from './pages/register';
 import Dashboard from './pages/dashboard';
+import VehicleManagement from './pages/vehicleManagement';
 import './index.css';
 
 const router = createBrowserRouter([
@@ -23,6 +24,14 @@ const router = createBrowserRouter([
   {
     path: '/dashboard',
     element: <Dashboard />,
+  },
+  {
+    path: '/logout',
+    element: < App/>,
+  },
+  {
+    path: '/vehicle-management',
+    element:<VehicleManagement />,
   },
 ]);
 

@@ -1,16 +1,68 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../css/Dashboard.css';
-import { FiAlertTriangle, FiTruck, FiUser, FiClock, FiPieChart, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiAlertTriangle, FiTruck, FiUser, FiClock, FiPieChart, FiSettings, FiLogOut, FiMapPin } from 'react-icons/fi';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Custom marker icons
+const normalIcon = new L.Icon({
+  iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const overloadIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [vehicles, setVehicles] = useState([
-    { id: 1, plate: 'T 456 ABC', driver: 'mpolo', weight: 15000, maxWeight: 22000, status: 'normal' },
-    { id: 2, plate: 'T 789 XYZ', driver: 'MARIA', weight: 25000, maxWeight: 22000, status: 'overload' }
+    { 
+      id: 1, 
+      plate: 'T 456 ABC', 
+      driver: 'mpolo', 
+      weight: 15000, 
+      maxWeight: 22000, 
+      status: 'normal',
+      location: [-6.369028, 34.888822], 
+      lastUpdate: '2023-05-17 14:30:45'
+    },
+    { 
+      id: 2, 
+      plate: 'T 789 XYZ', 
+      driver: 'MARIA', 
+      weight: 25000, 
+      maxWeight: 22000, 
+      status: 'overload',
+      location: [-0.023559, 37.906193], // Paris coordinates
+      lastUpdate: '2023-05-17 15:45:30'
+    },
+    { 
+        id: 3, 
+        plate: 'T 789 XYZ', 
+        driver: 'MJUNI', 
+        weight: 30000, 
+        maxWeight: 22000, 
+        status: 'overload',
+        location: [ -8.909401, 33.460774], // Paris coordinates
+        lastUpdate: '2023-05-17 15:45:30'
+      }
   ]);
   const [alerts, setAlerts] = useState([
-    { id: 1, type: 'Overload', vehicle: 'T 789 XYZ', time: '2025-03-27 14:30:45', severity: 'high' }
+    { id: 1, type: 'Overload', vehicle: 'T 789 XYZ', time: '2023-05-17 15:45:30', severity: 'high' }
   ]);
 
   // Simulate real-time updates
@@ -21,6 +73,11 @@ function Dashboard() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Calculate weight percentage
+  const calculateWeightPercentage = (weight, maxWeight) => {
+    return Math.min(100, (weight / maxWeight) * 100);
+  };
 
   return (
     <div className="dashboard-container">
@@ -59,15 +116,68 @@ function Dashboard() {
       {/* Main Content */}
       <div className="dashboard-main">
         <header className="dashboard-header">
-          <h1>Real-Time Vehicle Monitoring</h1>
+          <h1>Real-Time Vehicle Weight Monitoring</h1>
           <div className="current-time">
             <FiClock className="time-icon" /> 
             {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
           </div>
         </header>
+        <div className="map-section">
+            <h2 className="section-title">
+              <FiMapPin className="section-icon" /> Live Vehicle Locations
+            </h2>
+            <div className="map-container">
+            <MapContainer 
+                center={[-6.369028, 34.888822]} 
+                zoom={6} 
+                style={{ height: '100%', width: '100%' }}
+                maxBounds={[
+                    [-12.5, 29.0], // Southwest corner (Mbeya, Rukwa)
+                    [-0.9, 41.0]   // Northeast corner (Kilimanjaro region to Kenya border)
+                ]}
+                maxBoundsViscosity={1.0} // Prevent dragging out
+                >
+
+
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                {vehicles.map(vehicle => (
+                  <Marker 
+                    key={vehicle.id} 
+                    position={vehicle.location}
+                    icon={vehicle.status === 'overload' ? overloadIcon : normalIcon}
+                  >
+                    <Popup>
+                      <div className="map-popup">
+                        <h3>{vehicle.plate}</h3>
+                        <p><FiUser /> Driver: {vehicle.driver}</p>
+                        <p>Status: <span className={vehicle.status}>{vehicle.status.toUpperCase()}</span></p>
+                        <p>Weight: {vehicle.weight} / {vehicle.maxWeight} kg</p>
+                        <div className="weight-meter-popup">
+                          <div 
+                            className="meter-fill-popup"
+                            style={{
+                              width: `${calculateWeightPercentage(vehicle.weight, vehicle.maxWeight)}%`,
+                              backgroundColor: vehicle.status === 'overload' ? '#e74c3c' : '#2ecc71'
+                            }}
+                          ></div>
+                        </div>
+                        <p>Last Update: {vehicle.lastUpdate}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+          </div>
+
 
         <div className="dashboard-content">
-          {/* Status Overview Cards */}
+          {/* Map Section */}
+          
+          {/* Overview Cards */}
           <div className="overview-cards">
             <div className="overview-card total-vehicles">
               <h3>Total Vehicles</h3>
@@ -86,7 +196,7 @@ function Dashboard() {
           {/* Vehicle Status Section */}
           <div className="vehicle-status-section">
             <h2 className="section-title">
-              <FiTruck className="section-icon" /> Vehicle Status
+              <FiTruck className="section-icon" /> Vehicle Weight Status
             </h2>
             
             <div className="vehicle-cards">
@@ -94,7 +204,7 @@ function Dashboard() {
                 <div key={vehicle.id} className={`vehicle-card ${vehicle.status}`}>
                   <div className="vehicle-header">
                     <h3>{vehicle.plate}</h3>
-                    <span className="vehicle-status">{vehicle.status}</span>
+                    <span className="vehicle-status">{vehicle.status.toUpperCase()}</span>
                   </div>
                   <div className="vehicle-details">
                     <p><FiUser className="detail-icon" /> {vehicle.driver}</p>
@@ -107,12 +217,13 @@ function Dashboard() {
                         <div 
                           className="meter-fill"
                           style={{
-                            width: `${Math.min(100, (vehicle.weight / vehicle.maxWeight) * 100)}%`,
+                            width: `${calculateWeightPercentage(vehicle.weight, vehicle.maxWeight)}%`,
                             backgroundColor: vehicle.status === 'overload' ? '#e74c3c' : '#2ecc71'
                           }}
                         ></div>
                       </div>
                     </div>
+                    <p className="last-update">Last Update: {vehicle.lastUpdate}</p>
                   </div>
                 </div>
               ))}
@@ -131,7 +242,7 @@ function Dashboard() {
                   <div key={alert.id} className={`alert-card ${alert.severity}`}>
                     <div className="alert-header">
                       <h3>{alert.type}</h3>
-                      <span className="alert-severity">{alert.severity}</span>
+                      <span className="alert-severity">{alert.severity.toUpperCase()}</span>
                     </div>
                     <div className="alert-details">
                       <p>Vehicle: {alert.vehicle}</p>
@@ -149,6 +260,7 @@ function Dashboard() {
         </div>
       </div>
     </div>
+    
   );
 }
 

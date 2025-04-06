@@ -23,6 +23,7 @@
 body {
   font-family: 'Montserrat', sans-serif;
   background-color: #f5f7fa;
+  /* overflow: hidden; */
 }
 
 .dashboard-container {
@@ -112,6 +113,7 @@ body {
   flex: 1;
   padding: 2rem;
   margin-left: var(--sidebar-width);
+  
 }
 
 .dashboard-header {
@@ -366,7 +368,213 @@ body {
   color: var(--dark-text);
   opacity: 0.7;
 }
-
+.map-section {
+    margin-bottom: 2rem;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+  
+  .map-container {
+    height: 400px;
+    width: 100%;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+  
+  .map-popup {
+    min-width: 200px;
+  }
+  
+  .map-popup h3 {
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+  }
+  
+  .map-popup p {
+    margin: 0.3rem 0;
+    font-size: 0.9rem;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+  }
+  
+  .map-popup p svg {
+    margin-right: 5px;
+  }
+  
+  .map-popup .normal {
+    color: var(--success-color);
+    font-weight: 600;
+  }
+  
+  .map-popup .overload {
+    color: var(--warning-color);
+    font-weight: 600;
+  }
+  
+  .weight-meter-popup {
+    height: 8px;
+    background-color: #ecf0f1;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    overflow: hidden;
+  }
+  
+  .meter-fill-popup {
+    height: 100%;
+    border-radius: 4px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 992px) {
+    .map-container {
+      height: 350px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .map-container {
+      height: 300px;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .map-container {
+      height: 250px;
+    }
+    
+    .map-popup {
+      min-width: 180px;
+    }
+  }
+/* Vehicle Management Specific Styles */
+.management-section {
+    flex: 1;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-right: 1rem;
+  }
+  
+  .add-vehicle-section {
+    width: 350px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+  
+  .vehicle-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .vehicle-card {
+    background-color: var(--light-gray);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    border-left: 4px solid var(--primary-blue);
+  }
+  
+  .vehicle-card h3 {
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+  }
+  
+  .vehicle-details p {
+    margin: 0.5rem 0;
+    color: var(--dark-text);
+    display: flex;
+    align-items: center;
+  }
+  
+  .vehicle-details strong {
+    margin-right: 0.3rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--primary-blue);
+    font-weight: 500;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    font-family: 'Montserrat', sans-serif;
+  }
+  
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+  }
+  
+  .add-button {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: var(--accent-orange);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+  }
+  
+  .add-button:hover {
+    background-color: #d35400;
+  }
+  
+  .add-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 992px) {
+    .dashboard-content {
+      flex-direction: column;
+    }
+    
+    .management-section {
+      margin-right: 0;
+      margin-bottom: 1rem;
+    }
+    
+    .add-vehicle-section {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .vehicle-list {
+      grid-template-columns: 1fr;
+    }
+    
+    .form-group input {
+      padding: 0.7rem;
+    }
+    
+    .add-button {
+      padding: 0.7rem;
+    }
+  }
 /* Responsive Styles */
 @media (max-width: 1200px) {
   :root {
