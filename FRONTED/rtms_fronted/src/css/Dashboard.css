@@ -23,14 +23,14 @@
 body {
   font-family: 'Montserrat', sans-serif;
   background-color: #f5f7fa;
-  /* overflow: hidden; */
+  overflow: hidden;
 }
 
 .dashboard-container {
   display: flex;
-  min-height: 100vh;
+  min-height: 70vh;
   background-color: var(--light-gray);
-  width:118rem;
+  width:120rem;
   background-image: linear-gradient(
     rgba(255, 255, 255, 0.9), 
     rgba(255, 255, 255, 0.9)
@@ -46,7 +46,7 @@ background-position: center;
   width: var(--sidebar-width);
   background-color: white;
   box-shadow: 2px 0 15px rgba(0, 0, 0, 0.05);
-  padding: 1.5rem;
+  padding: 1rem;
   position: fixed;
   height: 100%;
   z-index: 100;
@@ -382,11 +382,11 @@ background-position: center;
     border-radius: var(--border-radius);
     padding: 1.5rem;
     box-shadow: var(--box-shadow);
-    height: 73vh;
+    height: 80.5vh;
   }
   
   .map-container {
-    height: 60vh;
+    height: 70vh;
     width: 100%;
     border-radius: var(--border-radius);
     overflow: hidden;
@@ -660,7 +660,7 @@ background-position: center;
 .dashboard-layout {
   display: flex;
   gap: 20px;
-  padding: 40px;
+  padding: 1px;
   
 }
 

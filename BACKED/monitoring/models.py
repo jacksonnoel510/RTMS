@@ -21,6 +21,7 @@ class Vehicle(models.Model):
     status = models.CharField(max_length=20, choices=[('active', 'Active'), ('inactive', 'Inactive')], default='inactive')
     alert_history = models.JSONField(default=list, blank=True)
     average_weight = models.FloatField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True,null=True)
 
     def __str__(self):
         return self.vehicle_name
@@ -39,17 +40,31 @@ class WeightReading(models.Model):
     def __str__(self):
         return f"Reading for {self.vehicle.vehicle_name} at {self.timestamp}"
 class Alert(models.Model):
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+    SEVERITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High')
+    ]
+    
+    ALERT_TYPES = [
+        ('overload', 'Overload'),
+        ('sensor_malfunction', 'Sensor Malfunction'),
+        ('other', 'Other')
+    ]
+    
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='alerts')
+    alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
     message = models.TextField()
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES)
+    current_weight = models.FloatField(null=True)
+    location = models.CharField(max_length=255,null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-    is_resolved = models.BooleanField(default=False)
-    resolved_timestamp = models.DateTimeField(null=True, blank=True)
-    alert_type = models.CharField(max_length=50, choices=[('overload', 'Overload'), ('sensor_error', 'Sensor Error'), ('maintenance', 'Maintenance')], default='overload')
-    severity = models.CharField(max_length=20, choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High')], default='high')
-    location = models.CharField(max_length=255, null=True, blank=True)  # Store location in alert
-    map_url = models.URLField(null=True, blank=True)  # Store the generated map URL
-    def __str__(self):
-        return f"Alert for {self.vehicle.vehicle_name} - {self.alert_type} at {self.timestamp}"
+    notified = models.BooleanField(default=False)
+    map_url = models.URLField(blank=True, null=True)
+    class Meta:
+        ordering = ['-timestamp']
 
 class Report(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)

@@ -169,7 +169,14 @@ function VehicleManagement() {
     );
   });
 
- 
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_first_name');
+    localStorage.removeItem('user_last_name');
+    localStorage.removeItem('user_email');
+    navigate('/login');
+  };
 
 
  // Update the handleSubmit function to properly handle file uploads
@@ -328,7 +335,7 @@ const resetForm = () => {
               <Link to="/settings"><FiSettings className="nav-icon" /> System Settings</Link>
             </li>
             <li className="logout">
-              <Link to="/logout"><FiLogOut className="nav-icon" /> Log Out</Link>
+                  <Link to="#" onClick={handleLogout}><FiLogOut className="nav-icon" /> Logout</Link>
             </li>
           </ul>
         </nav>

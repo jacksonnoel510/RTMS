@@ -42,6 +42,7 @@ class WeightReadingSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AlertSerializer(serializers.ModelSerializer):
+    vehicle = VehicleSerializer()
     class Meta:
         model = Alert
         fields = '__all__'

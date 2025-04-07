@@ -24,6 +24,8 @@ import L from 'leaflet';
 import { FiBell, FiCheck, FiX, FiSend } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 // Register ChartJS components
 ChartJS.register(
@@ -46,70 +48,31 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
+// Safe number formatting function
+const formatNumber = (num) => {
+  if (num === null || num === undefined) return 'N/A';
+  if (typeof num !== 'number') return num;
+  return num.toLocaleString();
+};
+
 function VehicleReports() {
+  const navigate = useNavigate();
+  const API_URL = 'http://localhost:8000/api/';
+  
   // State management
   const [reportData, setReportData] = useState({
-    criticalAlerts: 12,
-    warningAlerts: 28,
-    normalVehicles: 156,
-    overloadAlerts: [
-      {
-        id: 1,
-        vehicleId: 'TZA-4518-CT',
-        weight: 18520,
-        overload: 3520,
-        location: 'Kurasini Highway',
-        time: '10:25 AM',
-        status: 'critical',
-        coordinates: [-6.8235, 39.2695] // Dar es Salaam coordinates
-      },
-      {
-        id: 2,
-        vehicleId: 'TZA-8323-BT',
-        weight: 16750,
-        overload: 1750,
-        location: 'Dar Port Road',
-        time: '09:15 AM',
-        status: 'warning',
-        coordinates: [-6.8276, 39.2705]
-      },
-      {
-        id: 3,
-        vehicleId: 'TZA-7787-CT',
-        weight: 14250,
-        overload: -750,
-        location: 'TANROADS Junction',
-        time: '9:47 AM',
-        status: 'normal',
-        coordinates: [-6.8168, 39.2804]
-      },
-      {
-        id: 4,
-        vehicleId: 'TZA-4198-BT',
-        weight: 19120,
-        overload: 4120,
-        location: 'Kunduchi Highway',
-        time: '08:05 AM',
-        status: 'critical',
-        coordinates: [-6.6685, 39.2283]
-      },
-      {
-        id: 5,
-        vehicleId: 'TZA-6521-CT',
-        weight: 16380,
-        overload: 1380,
-        location: 'UDSM Road',
-        time: '08:05 AM',
-        status: 'warning',
-        coordinates: [-6.7823, 39.2089]
-      }
-    ]
+    criticalAlerts: 0,
+    warningAlerts: 0,
+    normalVehicles: 0,
+    overloadAlerts: []
   });
+  console.log(reportData);
   const [dateRange, setDateRange] = useState({
-    start: '2025-04-01',
-    end: '2025-04-30'
+    start: new Date(new Date().setDate(1)).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
   });
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [activeTab, setActiveTab] = useState('overview');
   const [alertFilters, setAlertFilters] = useState({
     status: 'all',
@@ -117,57 +80,194 @@ function VehicleReports() {
     minOverload: 0
   });
 
-  // Alert frequency data for charts
-  const alertFrequencyData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Critical Alerts',
-        data: [5, 8, 6, 12, 9, 7],
-        backgroundColor: 'rgba(231, 76, 60, 0.7)',
-        borderColor: 'rgba(231, 76, 60, 1)',
-        borderWidth: 1
-      },
-      {
-        label: 'Warning Alerts',
-        data: [10, 15, 12, 28, 20, 18],
-        backgroundColor: 'rgba(230, 126, 34, 0.7)',
-        borderColor: 'rgba(230, 126, 34, 1)',
-        borderWidth: 1
-      }
-    ]
-  };
+  // Safe data processing for alerts
+  const processAlertData = (alert) => ({
+    id: alert.id || 0,
+    vehicleId: alert.vehicle?.vehicle_id || 'Unknown',
+    weight: alert.current_weight || 0,
+    overload: (alert.current_weight || 0) - (alert.vehicle?.max_allowed_weight || 0),
+    location: alert.location || 'Unknown Location',
+    time: alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'N/A',
+    status: alert.severity === 'high' ? 'critical' : 
+           alert.severity === 'medium' ? 'sensor malfunction' : 'normal',
+    coordinates: alert.latitude && alert.longitude ? 
+                [parseFloat(alert.latitude), parseFloat(alert.longitude)] : 
+                [-6.7924, 39.2083]
+  });
 
-  // Weight trend data
-  const weightTrendData = {
-    labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
-    datasets: [
-      {
-        label: 'Average Vehicle Weight (kg)',
-        data: [12000, 14500, 15500, 16200, 14800, 13500],
-        fill: true,
-        backgroundColor: 'rgba(52, 152, 219, 0.2)',
-        borderColor: 'rgba(52, 152, 219, 1)',
-        tension: 0.4
-      },
-      {
-        label: 'Max Weight Limit',
-        data: [15000, 15000, 15000, 15000, 15000, 15000],
-        borderColor: 'rgba(231, 76, 60, 1)',
-        borderWidth: 2,
-        borderDash: [5, 5],
-        fill: false
+  // Fetch report data from backend
+  const fetchReportData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        navigate('/login');
+        return;
       }
-    ]
-  };
 
-  // Simulate loading report data
-  const loadReportData = () => {
-    setIsLoading(true);
-    // In a real app, this would be an API call
-    setTimeout(() => {
+      const response = await axios.get(`${API_URL}reports/summary/`, {
+        params: {
+          start_date: dateRange.start,
+          end_date: dateRange.end
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = response.data || {};
+      setReportData({
+        criticalAlerts: data.critical_alerts || 0,
+        warningAlerts: data.warning_alerts || 0,
+        normalVehicles: data.normal_vehicles || 0,
+        overloadAlerts: (data.overload_alerts || []).map(processAlertData)
+      });
+
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+      toast.error('Failed to load report data');
+      // Set empty state on error
+      setReportData({
+        criticalAlerts: 0,
+        warningAlerts: 0,
+        normalVehicles: 0,
+        overloadAlerts: []
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  // Fetch alert frequency data for charts
+  const fetchAlertFrequencyData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`${API_URL}reports/alert-frequency/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = response.data || {};
+      return {
+        labels: data.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [
+          {
+            label: 'Critical Alerts',
+            data: data.critical || [0, 0, 0, 0, 0, 0],
+            backgroundColor: 'rgba(231, 76, 60, 0.7)',
+            borderColor: 'rgba(231, 76, 60, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Warning Alerts',
+            data: data.warning || [0, 0, 0, 0, 0, 0],
+            backgroundColor: 'rgba(230, 126, 34, 0.7)',
+            borderColor: 'rgba(230, 126, 34, 1)',
+            borderWidth: 1
+          }
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching alert frequency data:', error);
+      return {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [
+          {
+            label: 'Critical Alerts',
+            data: [0, 0, 0, 0, 0, 0],
+            backgroundColor: 'rgba(231, 76, 60, 0.7)',
+            borderColor: 'rgba(231, 76, 60, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Warning Alerts',
+            data: [0, 0, 0, 0, 0, 0],
+            backgroundColor: 'rgba(230, 126, 34, 0.7)',
+            borderColor: 'rgba(230, 126, 34, 1)',
+            borderWidth: 1
+          }
+        ]
+      };
+    }
+  };
+
+  // Fetch weight trend data
+  const fetchWeightTrendData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`${API_URL}reports/weight-trends/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = response.data || {};
+      return {
+        labels: data.times || ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
+        datasets: [
+          {
+            label: 'Average Vehicle Weight (kg)',
+            data: data.average_weights || [0, 0, 0, 0, 0, 0],
+            fill: true,
+            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            borderColor: 'rgba(52, 152, 219, 1)',
+            tension: 0.4
+          },
+          {
+            label: 'Max Weight Limit',
+            data: Array(6).fill(15000),
+            borderColor: 'rgba(231, 76, 60, 1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false
+          }
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching weight trend data:', error);
+      return {
+        labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
+        datasets: [
+          {
+            label: 'Average Vehicle Weight (kg)',
+            data: [0, 0, 0, 0, 0, 0],
+            fill: true,
+            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            borderColor: 'rgba(52, 152, 219, 1)',
+            tension: 0.4
+          },
+          {
+            label: 'Max Weight Limit',
+            data: Array(6).fill(15000),
+            borderColor: 'rgba(231, 76, 60, 1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false
+          }
+        ]
+      };
+    }
+  };
+
+  const [alertFrequencyData, setAlertFrequencyData] = useState(null);
+  const [weightTrendData, setWeightTrendData] = useState(null);
+
+  // Load all report data
+  const loadReportData = async () => {
+    setIsLoading(true);
+    try {
+      await fetchReportData();
+      const frequencyData = await fetchAlertFrequencyData();
+      setAlertFrequencyData(frequencyData);
+      
+      const trendData = await fetchWeightTrendData();
+      setWeightTrendData(trendData);
+    } catch (error) {
+      console.error('Error loading report data:', error);
+      toast.error('Failed to load report data');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle date range change
@@ -190,42 +290,49 @@ function VehicleReports() {
 
   // Filter alerts based on current filters
   const filteredAlerts = reportData.overloadAlerts.filter(alert => {
+    if (!alert) return false;
+    
     // Status filter
     if (alertFilters.status !== 'all' && alert.status !== alertFilters.status) {
       return false;
     }
     // Location filter
-    if (alertFilters.location && !alert.location.toLowerCase().includes(alertFilters.location.toLowerCase())) {
+    if (alertFilters.location && !(alert.location || '').toLowerCase().includes(alertFilters.location.toLowerCase())) {
       return false;
     }
     // Overload filter
-    if (alert.overload < alertFilters.minOverload) {
+    if ((alert.overload || 0) < alertFilters.minOverload) {
       return false;
     }
     return true;
   });
 
-  // CSV data preparation
+  // Safe CSV data preparation
   const csvData = [
     ['Vehicle ID', 'Weight', 'Overload', 'Location', 'Time', 'Status'],
     ...filteredAlerts.map(alert => [
-      alert.vehicleId,
-      `${alert.weight.toLocaleString()} kg`,
-      `${alert.overload > 0 ? '+' : ''}${alert.overload.toLocaleString()} kg`,
-      alert.location,
-      alert.time,
-      alert.status
+      alert.vehicleId || 'N/A',
+      `${formatNumber(alert.weight)} kg`,
+      `${alert.overload > 0 ? '+' : ''}${formatNumber(alert.overload)} kg`,
+      alert.location || 'N/A',
+      alert.time || 'N/A',
+      alert.status || 'N/A'
     ])
   ];
 
-  // Format number with thousands separator
-  const formatNumber = (num) => {
-    return num.toLocaleString();
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_first_name');
+    localStorage.removeItem('user_last_name');
+    localStorage.removeItem('user_email');
+    navigate('/login');
   };
 
   useEffect(() => {
     loadReportData();
   }, []);
+
   const NotifyAction = ({ alert, onNotificationSent }) => {
     const [isNotifying, setIsNotifying] = useState(false);
     const [notificationStatus, setNotificationStatus] = useState(null);
@@ -235,8 +342,17 @@ function VehicleReports() {
       setNotificationStatus(null);
       
       try {
-        // Mock API call - replace with actual implementation
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const token = localStorage.getItem('access_token');
+        await axios.post(
+          `${API_URL}alerts/${alert.id}/notify/`, 
+          {},
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
         setNotificationStatus('success');
         onNotificationSent(alert.id);
         toast.success(`Notification sent for ${alert.vehicleId}`);
@@ -247,7 +363,7 @@ function VehicleReports() {
         setIsNotifying(false);
       }
     };
-  
+
     return (
       <div className="notification-action">
         {notificationStatus === 'success' ? (
@@ -270,6 +386,18 @@ function VehicleReports() {
       </div>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="vehicle-management-container">
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+          <p>Loading report data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="vehicle-management-container">
       {/* Sidebar */}
@@ -288,9 +416,6 @@ function VehicleReports() {
             <li>
               <Link to="/vehicle-management"><FiTruck className="nav-icon" /> Vehicle Management</Link>
             </li>
-            {/* <li>
-              <Link to="/alerts"><FiAlertTriangle className="nav-icon" /> Alerts</Link>
-            </li> */}
             <li className="active">
               <Link to="/reports"><FiBarChart2 className="nav-icon" /> Reports</Link>
             </li>
@@ -298,7 +423,7 @@ function VehicleReports() {
               <Link to="/settings"><FiSettings className="nav-icon" /> System Settings</Link>
             </li>
             <li className="logout">
-              <Link to="/logout"><FiLogOut className="nav-icon" /> Log Out</Link>
+              <Link to="#" onClick={handleLogout}><FiLogOut className="nav-icon" /> Logout</Link>
             </li>
           </ul>
         </nav>
@@ -408,7 +533,7 @@ function VehicleReports() {
                     <FiTruck />
                   </div>
                   <div className="card-content">
-                    <div className="card-value">{reportData.normalVehicles}</div>
+                    <div className="card-value">{formatNumber(reportData.normalVehicles)}</div>
                     <div className="card-label">Normal Vehicles</div>
                     <div className="card-trend trend-down">
                       <FiTrendingDown /> 5% from last period
@@ -448,7 +573,7 @@ function VehicleReports() {
                     <tbody>
                       {filteredAlerts.slice(0, 5).map((alert, index) => (
                         <tr key={index} className={`alert-row ${alert.status}`}>
-                          <td>{alert.vehicleId}</td>
+                          <td>{alert.vehicleId || 'N/A'}</td>
                           <td>{formatNumber(alert.weight)} kg</td>
                           <td>
                             <span className={`overload-badge ${alert.overload > 0 ? 'positive' : 'negative'}`}>
@@ -456,18 +581,16 @@ function VehicleReports() {
                             </span>
                           </td>
                           <td>
-                            <FiMapPin /> {alert.location}
+                            <FiMapPin /> {alert.location || 'N/A'}
                           </td>
-                          <td>{alert.time}</td>
+                          <td>{alert.time || 'N/A'}</td>
                           <td>
-                            <span className={`status-badge ${alert.status }`}>
-                              {alert.status}
+                            <span className={`status-badge ${alert.status}`}>
+                              {alert.status || 'N/A'}
                             </span>
                           </td>
                           <td>
-                            <button className="action-btn notify">
-                              Notify
-                            </button>
+                            <NotifyAction alert={alert} onNotificationSent={() => {}} />
                           </td>
                         </tr>
                       ))}
@@ -478,7 +601,7 @@ function VehicleReports() {
             </>
           )}
 
-          {activeTab === 'alerts' && (
+          {activeTab === 'alerts' && alertFrequencyData && (
             <div className="alert-analysis">
               <div className="analysis-header">
                 <h3>Alert Analysis</h3>
@@ -564,7 +687,7 @@ function VehicleReports() {
                   <tbody>
                     {filteredAlerts.map((alert, index) => (
                       <tr key={index} className={`alert-row ${alert.status}`}>
-                        <td>{alert.vehicleId}</td>
+                        <td>{alert.vehicleId || 'N/A'}</td>
                         <td>{formatNumber(alert.weight)} kg</td>
                         <td>
                           <span className={`overload-badge ${alert.overload > 0 ? 'positive' : 'negative'}`}>
@@ -572,12 +695,12 @@ function VehicleReports() {
                           </span>
                         </td>
                         <td>
-                          <FiMapPin /> {alert.location}
+                          <FiMapPin /> {alert.location || 'N/A'}
                         </td>
-                        <td>{alert.time}</td>
+                        <td>{alert.time || 'N/A'}</td>
                         <td>
                           <span className={`status-badge ${alert.status}`}>
-                            {alert.status}
+                            {alert.status || 'N/A'}
                           </span>
                         </td>
                       </tr>
@@ -588,7 +711,7 @@ function VehicleReports() {
             </div>
           )}
 
-          {activeTab === 'trends' && (
+          {activeTab === 'trends' && weightTrendData && (
             <div className="trend-analysis">
               <h3>Weight Trend Analysis</h3>
               
@@ -646,7 +769,7 @@ function VehicleReports() {
               <div className="map-container">
                 <MapContainer 
                   center={[-6.7924, 39.2083]} 
-                  zoom={12} 
+                  zoom={5.5} 
                   style={{ height: '500px', width: '100%', borderRadius: '8px' }}
                 >
                   <TileLayer
@@ -656,11 +779,11 @@ function VehicleReports() {
                   {reportData.overloadAlerts.map(alert => (
                     <Marker key={alert.id} position={alert.coordinates || [-6.7924, 39.2083]}>
                       <Popup>
-                        <strong>{alert.vehicleId}</strong><br />
-                        {alert.location}<br />
+                        <strong>{alert.vehicleId || 'N/A'}</strong><br />
+                        {alert.location || 'N/A'}<br />
                         Weight: {formatNumber(alert.weight)} kg<br />
                         Overload: {alert.overload > 0 ? '+' : ''}{formatNumber(alert.overload)} kg<br />
-                        Status: <span className={`status-text ${alert.status}`}>{alert.status}</span>
+                        Status: <span className={`status-text ${alert.status}`}>{alert.status || 'N/A'}</span>
                       </Popup>
                     </Marker>
                   ))}
@@ -681,8 +804,6 @@ function VehicleReports() {
           )}
         </div>
       </div>
-      {/* Add this at the end of your main return statement */}
-{/* <ToastContainer position="bottom-right" autoClose={3000} /> */}
     </div>
   );
 }

@@ -43,8 +43,8 @@ function Dashboard() {
     avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
   });
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [mapCenter, setMapCenter] = useState([-6.369028, 34.888822]); // Center of Tanzania
-  const [mapZoom, setMapZoom] = useState(3); // Adjusted to show all Tanzania
+  const [mapCenter, setMapCenter] = useState([-6.369028, 34.888822]); 
+  const [mapZoom, setMapZoom] = useState(3); 
   const navigate = useNavigate();
   const mapRef = useRef(null);
 
@@ -111,7 +111,7 @@ function Dashboard() {
           }
         })
       ]);
-
+console.log(alertsResponse);
       const processedVehicles = vehiclesResponse.data.results.map(vehicle => {
         const hasLocation = vehicle.latitude && vehicle.longitude;
         const location = hasLocation 
@@ -120,7 +120,7 @@ function Dashboard() {
 
         if (hasLocation && allVehicles.length === 0) {
           setMapCenter(location);
-          setMapZoom(12); // Zoom in when showing individual vehicle
+          setMapZoom(12);
         }
 
         return {
@@ -144,7 +144,9 @@ function Dashboard() {
       const processedAlerts = alertsResponse.data.results?.map(alert => ({
         id: alert.id,
         type: alert.alert_type || 'Weight Alert',
-        vehicle: alert.vehicle_id || 'Unknown',
+        vehicle_id: alert.vehicle.vehicle_id,
+        vehicle_name: alert.vehicle.vehicle_name || 'Unknown',
+        message:alert.message || 'Unknown Alert',
         time: alert.timestamp ? new Date(alert.timestamp).toLocaleString() : new Date().toLocaleString(),
         severity: alert.severity || 'high',
         location: alert.latitude && alert.longitude 
@@ -207,29 +209,32 @@ function Dashboard() {
   // Custom vehicle popup content
   const renderVehiclePopup = (vehicle) => (
     <div className="map-popup">
-      <h3>{vehicle.vehicleName} ({vehicle.plate})</h3>
+      <h3>{vehicle.vehicleName || 'Unknown Vehicle'} ({vehicle.plate || 'N/A'})</h3>
       {vehicle.vehicleImage && (
         <img 
           src={vehicle.vehicleImage} 
-          alt={vehicle.vehicleName}
+          alt={vehicle.vehicleName || 'Vehicle'}
           className="popup-thumbnail"
+          onError={(e) => {
+            e.target.style.display = 'none'; // Hide image if it fails to load
+          }}
         />
       )}
-      <p><FiUser /> Driver: {vehicle.driver}</p>
-      <p>Status: <span className={vehicle.status}>{vehicle.status.toUpperCase()}</span></p>
-      <p>Weight: {vehicle.weight} / {vehicle.maxWeight} kg</p>
+      <p><FiUser /> Driver: {vehicle.driver || 'N/A'}</p>
+      <p>Status: <span className={vehicle.status}>{vehicle.status?.toUpperCase() || 'UNKNOWN'}</span></p>
+      <p>Weight: {formatNumber(vehicle.weight || 0)} / {formatNumber(vehicle.maxWeight || 0)} kg</p>
       <div className="weight-meter-popup">
         <div 
           className="meter-fill-popup"
           style={{
-            width: `${calculateWeightPercentage(vehicle.weight, vehicle.maxWeight)}%`,
+            width: `${calculateWeightPercentage(vehicle.weight || 0, vehicle.maxWeight || 1)}%`,
             backgroundColor: vehicle.status === 'overload' ? '#e74c3c' : '#2ecc71'
           }}
         ></div>
       </div>
       {vehicle.speed > 0 && <p>Speed: {vehicle.speed} km/h</p>}
       {vehicle.heading > 0 && <p>Heading: {vehicle.heading}°</p>}
-      <p>Last Update: {vehicle.lastUpdate}</p>
+      <p>Last Update: {vehicle.lastUpdate || 'N/A'}</p>
     </div>
   );
 
@@ -269,7 +274,7 @@ function Dashboard() {
               <Link to="/settings"><FiSettings className="nav-icon" /> System Settings</Link>
             </li>
             <li className="logout">
-              <Link to="/logout" onClick={handleLogout}><FiLogOut className="nav-icon" /> Log Out</Link>
+                  <Link to="#" onClick={handleLogout}><FiLogOut className="nav-icon" /> Logout</Link>
             </li>
           </ul>
         </nav>
@@ -421,7 +426,8 @@ function Dashboard() {
                         <span className="alert-severity">{alert.severity.toUpperCase()}</span>
                       </div>
                       <div className="alert-details">
-                        <p>Vehicle: {alert.vehicle}</p>
+                        <p>Vehicle: {alert.vehicle_name} ({alert.vehicle_id})</p>
+                        <p>message: {alert.message}</p>
                         <p>Time: {alert.time}</p>
                         {alert.location && (
                           <button 
@@ -448,49 +454,79 @@ function Dashboard() {
 
           {/* Right side map */}
           <div className="dashboard-content-right">
-            <div className="map-section">
-              <h2 className="section-title">
-                <FiMapPin className="section-icon" /> Live Vehicle Locations
-              </h2>
-              <div className="map-container">
-                <MapContainer 
-                  center={mapCenter}
-                  zoom={mapZoom}
-                  style={{ height: '100%', width: '100%' }}
-                  minZoom={6}
-                  maxZoom={6}
-                  maxBounds={[
-                    [-12.5, 29.0], // Southwest corner of Tanzania
-                    [-0.9, 41.0]   // Northeast corner of Tanzania
-                  ]}
-                  maxBoundsViscosity={1.0}
-                  ref={mapRef}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  <div className="map-section">
+    <h2 className="section-title">
+      <FiMapPin className="section-icon" /> Live Vehicle Locations
+    </h2>
+    <div className="map-container">
+      <MapContainer 
+        center={mapCenter}
+        zoom={mapZoom}
+        style={{ height: '100%', width: '100%' }}
+        minZoom={6}
+        maxZoom={6}  // Allow more zoom for better inspection
+        maxBounds={[
+          [-12.5, 29.0],
+          [-0.9, 41.0]
+        ]}
+        maxBoundsViscosity={1.0}
+        ref={mapRef}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        {allVehicles.map(vehicle => (
+          <Marker 
+            key={vehicle.id} 
+            position={vehicle.location}
+            icon={vehicle.status === 'overload' ? overloadIcon : normalIcon}
+            eventHandlers={{
+              click: () => {
+                setMapCenter(vehicle.location);
+                setMapZoom(12); // Zoom in more when clicking a marker
+              }
+            }}
+          >
+            <Popup 
+              className="custom-popup" 
+              closeButton={true}
+              autoPan={true}
+              autoPanPaddingTopLeft={[20, 20]}
+              autoPanPaddingBottomRight={[20, 20]}
+            >
+              <div className="map-popup">
+                <h3>{vehicle.vehicleName} ({vehicle.plate})</h3>
+                {vehicle.vehicleImage && (
+                  <img 
+                    src={vehicle.vehicleImage} 
+                    alt={vehicle.vehicleName}
+                    className="popup-thumbnail"
                   />
-                  {allVehicles.map(vehicle => (
-                    <Marker 
-                      key={vehicle.id} 
-                      position={vehicle.location}
-                      icon={vehicle.status === 'overload' ? overloadIcon : normalIcon}
-                      eventHandlers={{
-                        click: () => {
-                          setMapCenter(vehicle.location);
-                          setMapZoom(6); // Changed from 2 to 12 for better view
-                        }
-                      }}
-                    >
-                      <Popup>
-                        {renderVehiclePopup(vehicle)}
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
+                )}
+                <p><FiUser /> Driver: {vehicle.driver || 'N/A'}</p>
+                <p>Status: <span className={vehicle.status}>{vehicle.status.toUpperCase()}</span></p>
+                <p>Weight: {vehicle.weight || 0} / {vehicle.maxWeight || 0} kg</p>
+                <div className="weight-meter-popup">
+                  <div 
+                    className="meter-fill-popup"
+                    style={{
+                      width: `${calculateWeightPercentage(vehicle.weight || 0, vehicle.maxWeight || 1)}%`,
+                      backgroundColor: vehicle.status === 'overload' ? '#e74c3c' : '#2ecc71'
+                    }}
+                  ></div>
+                </div>
+                {vehicle.speed > 0 && <p>Speed: {vehicle.speed} km/h</p>}
+                {vehicle.heading > 0 && <p>Heading: {vehicle.heading}°</p>}
+                <p>Last Update: {vehicle.lastUpdate || 'N/A'}</p>
               </div>
-            </div>
-          </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>
