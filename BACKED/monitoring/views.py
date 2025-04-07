@@ -18,10 +18,9 @@ from rest_framework.decorators import authentication_classes
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from datetime import timedelta 
 from django.db.models import Count, Avg, Q
-import json
 from django.core.mail import send_mail
 from django.conf import settings
-
+from .config import EMAIL_CONFIG, API_KEYS, ALERT_CONFIG, MAP_CONFIG, REPORT_CONFIG, WEIGHT_READING_CONFIG
 
 
 @authentication_classes([JWTAuthentication])
@@ -38,6 +37,7 @@ class UserView(APIView):
             'role': 'Administrator' 
         })
 
+
 class RegisterView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
@@ -50,6 +50,7 @@ class RegisterView(APIView):
                 'access': str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LoginView(APIView):
     def post(self, request):
@@ -64,18 +65,20 @@ class LoginView(APIView):
                 'access': str(refresh.access_token),
             })
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
 class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
-        instance= serializer.save()
+        instance = serializer.save()
         self.check_weight_alert(instance)
+
     def check_weight_alert(self, vehicle):
-        
         """Logic to check if the vehicle exceeds the weight limit."""
-        if vehicle.current_weight > vehicle.max_allowed_weight + 100:
+        if vehicle.current_weight > vehicle.max_allowed_weight + ALERT_CONFIG['OVERLOAD_THRESHOLD']:
             vehicle.weight_alert = True
             vehicle.save()
 
@@ -84,7 +87,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
             vehicle_location = f"Latitude: {vehicle.latitude}, Longitude: {vehicle.longitude}"
             alert = self.create_alert(vehicle, 'overload', alert_message, vehicle_location)
 
-            # Send alert to authorities (can be via email, SMS, or any communication platform)
+            # Send alert to authorities
             self.send_alert_to_authorities(alert)
 
             # Generate map URL
@@ -98,7 +101,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
             vehicle=vehicle,
             message=message,
             alert_type=alert_type,
-            severity='high',
+            severity=ALERT_CONFIG['CRITICAL_SEVERITY_LEVEL'],
             location=location  
         )
         alert_timestamp = alert.timestamp.isoformat()
@@ -113,21 +116,27 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return alert
 
     def send_alert_to_authorities(self, alert):
-        """Send the alert to authorities (e.g., via email or SMS)."""
-        authority_email = "jacksonnoel510@gmail.com"
-        subject = f"Overload Alert for Vehicle {alert.vehicle.vehicle_name}"
+        """Send the alert to authorities."""
+        subject = f"{EMAIL_CONFIG['EMAIL_SUBJECT_PREFIX']}Overload Alert for Vehicle {alert.vehicle.vehicle_name}"
         message = f"Alert Type: {alert.alert_type}\n" \
-                  f"Message: {alert.message}\n" \
-                  f"Vehicle Location: {alert.location}\n" \
-                  f"Alert Severity: {alert.severity}"
+                f"Message: {alert.message}\n" \
+                f"Vehicle Location: {alert.location}\n" \
+                f"Alert Severity: {alert.severity}"
 
         # Send email to authorities
-        send_mail(subject, message, 'noeljackson068@gmail.com', [authority_email])
+        send_mail(
+            subject, 
+            message, 
+            EMAIL_CONFIG['DEFAULT_FROM_EMAIL'], 
+            EMAIL_CONFIG['AUTHORITY_EMAILS']
+        )
 
     def generate_map_url(self, latitude, longitude):
         """Generate a map URL for vehicle's current location."""
-        map_url = f"https://www.google.com/maps?q={latitude},{longitude}"
-        return map_url
+        return MAP_CONFIG['GOOGLE_MAPS_URL_FORMAT'].format(
+            latitude=latitude, 
+            longitude=longitude
+        )
 
 
 class WeightReadingViewSet(viewsets.ModelViewSet):
@@ -151,7 +160,7 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
         self.update_average_weight(vehicle)
 
         vehicle.weight_alert = (
-            weight_reading.weight > vehicle.max_allowed_weight + 100 or
+            weight_reading.weight > vehicle.max_allowed_weight + ALERT_CONFIG['OVERLOAD_THRESHOLD'] or
             weight_reading.status == 'suspected' or
             weight_reading.sensor_health == 'malfunctioning'
         )
@@ -162,10 +171,10 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
     def update_average_weight(self, vehicle):
         recent_readings = WeightReading.objects.filter(
             vehicle=vehicle,
-            timestamp__gte=timezone.now() - timedelta(days=30),
+            timestamp__gte=timezone.now() - timedelta(days=WEIGHT_READING_CONFIG['VALID_READING_DAYS']),
             status='valid',
             sensor_health='healthy'
-        ).exclude(weight=0).order_by('-timestamp')[:100]
+        ).exclude(weight=0).order_by('-timestamp')[:WEIGHT_READING_CONFIG['MAX_READINGS_FOR_AVERAGE']]
 
         if recent_readings.exists():
             total_weight = sum(r.weight for r in recent_readings)
@@ -180,7 +189,7 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
         if weight_reading.sensor_health == 'malfunctioning':
             weight_reading.status = 'suspected'
             self.create_sensor_malfunction_alert(weight_reading)
-        elif weight_reading.weight > max_allowed + 100:
+        elif weight_reading.weight > max_allowed + ALERT_CONFIG['OVERLOAD_THRESHOLD']:
             weight_reading.status = 'suspected'
             self.create_overload_alert(weight_reading)
         elif weight_reading.weight > max_allowed:
@@ -249,10 +258,10 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
             weight_reading.longitude,
             location,
             map_url,
-            severity='medium'
+            severity=ALERT_CONFIG['WARNING_SEVERITY_LEVEL']
         )
 
-    def create_alert(self, vehicle, alert_type, message,current_weight, latitude, longitude, location, map_url, severity='high'):
+    def create_alert(self, vehicle, alert_type, message, current_weight, latitude, longitude, location, map_url, severity=ALERT_CONFIG['CRITICAL_SEVERITY_LEVEL']):
         alert = Alert.objects.create(
             vehicle=vehicle,
             message=message,
@@ -274,25 +283,29 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
             'map_url': map_url
         }
 
-        vehicle.alert_history = [alert_entry] + vehicle.alert_history[:49]
+        vehicle.alert_history = [alert_entry] + vehicle.alert_history[:REPORT_CONFIG['MAX_ALERT_HISTORY']-1]
         vehicle.save()
 
         return alert
 
     def send_alert_to_authorities(self, alert, lat, long):
-        authority_email = "jacksonnoel510@gmail.com"
-        subject = f"Overload Alert for Vehicle {alert.vehicle.vehicle_name}"
+        subject = f"{EMAIL_CONFIG['EMAIL_SUBJECT_PREFIX']}Overload Alert for Vehicle {alert.vehicle.vehicle_name}"
 
-        latitude = lat
-        longitude = long
-
-        tomtom_api_key = "87GPL9AlX01QAYg9vnFZJTMozF7k46ao"
-        static_map_url = f"https://api.tomtom.com/map/1/staticimage?key={tomtom_api_key}&zoom=9&center={latitude},{longitude}&format=jpg&layer=basic&style=main&width=1305&height=748&view=Unified&language=en-GB"
+        tomtom_api_key = API_KEYS['TOMTOM_API_KEY']
+        static_map_url = MAP_CONFIG['TOMTOM_STATIC_MAP_URL'].format(
+            api_key=tomtom_api_key,
+            latitude=lat,
+            longitude=long
+        )
 
         response = requests.get(static_map_url)
         map_image = response.content if response.status_code == 200 else None
 
-        google_maps_url = f"https://www.google.com/maps?q={latitude},{longitude}"
+        google_maps_url = MAP_CONFIG['GOOGLE_MAPS_URL_FORMAT'].format(
+            latitude=lat,
+            longitude=long
+        )
+        
         message = (
             f"Alert Type: {alert.alert_type}\n"
             f"Message: {alert.message}\n"
@@ -304,8 +317,8 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
         email = EmailMessage(
             subject,
             message,
-            'noeljackson068@gmail.com',
-            [authority_email],
+            EMAIL_CONFIG['DEFAULT_FROM_EMAIL'],
+            EMAIL_CONFIG['AUTHORITY_EMAILS'],
         )
 
         if map_image:
@@ -314,7 +327,11 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
         email.send()
 
     def generate_map_url(self, latitude, longitude):
-        return f"https://www.google.com/maps?q={latitude},{longitude}"
+        return MAP_CONFIG['GOOGLE_MAPS_URL_FORMAT'].format(
+            latitude=latitude,
+            longitude=longitude
+        )
+
 
 class AlertViewSet(viewsets.ModelViewSet):
     queryset = Alert.objects.all()
@@ -323,6 +340,7 @@ class AlertViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.save()
         self.resolve_alert(instance)
+
     def get_queryset(self):
         # Get only the latest alert for each vehicle
         return Alert.objects.filter(
@@ -330,6 +348,7 @@ class AlertViewSet(viewsets.ModelViewSet):
                 .annotate(latest=Max('id'))
                 .values_list('latest', flat=True)
         ).order_by('-timestamp')
+
     def resolve_alert(self, alert):
         """Logic to resolve an alert."""
         alert.is_resolved = True
@@ -342,7 +361,7 @@ class ReportViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSerializer
 
     def perform_create(self, vehicle):
-        report_type=vehicle.report_type
+        report_type = vehicle.report_type
         """Create a report manually."""
         return self.generate_report(vehicle, report_type)
     
@@ -375,10 +394,7 @@ class ReportViewSet(viewsets.ModelViewSet):
         return report
 
 
-
-
 class ReportView(APIView):
-    print('tumefika')
     def get(self, request):
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
@@ -402,19 +418,19 @@ class ReportView(APIView):
 
         # Get alert counts
         critical_alerts = Alert.objects.filter(
-            severity='high',
+            severity=ALERT_CONFIG['CRITICAL_SEVERITY_LEVEL'],
             **filters
         ).count()
         
         warning_alerts = Alert.objects.filter(
-            severity='medium',
+            severity=ALERT_CONFIG['WARNING_SEVERITY_LEVEL'],
             **filters
         ).count()
 
         # Get normal vehicles (no critical/warning alerts)
         alerted_vehicles = Vehicle.objects.filter(
-            Q(alerts__severity='high', **filters) |
-            Q(alerts__severity='medium', **filters)
+            Q(alerts__severity=ALERT_CONFIG['CRITICAL_SEVERITY_LEVEL'], **filters) |
+            Q(alerts__severity=ALERT_CONFIG['WARNING_SEVERITY_LEVEL'], **filters)
         ).distinct()
 
         normal_vehicles = Vehicle.objects.exclude(
@@ -451,6 +467,8 @@ class ReportView(APIView):
                 for alert in overload_alerts
             ]
         })
+
+
 class AlertFrequencyView(APIView):
     def get(self, request):
         # Get alert frequency for last 6 months
@@ -493,9 +511,9 @@ class AlertFrequencyView(APIView):
                 index = months.index(
                     timezone.datetime.strptime(alert['month'], '%Y-%m').strftime('%b')
                 )
-                if alert['severity'] == 'high':
+                if alert['severity'] == ALERT_CONFIG['CRITICAL_SEVERITY_LEVEL']:
                     critical[index] = alert['count']
-                elif alert['severity'] == 'medium':
+                elif alert['severity'] == ALERT_CONFIG['WARNING_SEVERITY_LEVEL']:
                     warning[index] = alert['count']
             except ValueError:
                 continue
@@ -505,6 +523,7 @@ class AlertFrequencyView(APIView):
             'critical': critical[-6:],
             'warning': warning[-6:]
         })
+
 
 class WeightTrendView(APIView):
     def get(self, request):
@@ -539,6 +558,7 @@ class WeightTrendView(APIView):
             'average_weights': avg_weights
         })
 
+
 class AlertNotificationView(APIView):
     def post(self, request, pk):
         try:
@@ -546,7 +566,7 @@ class AlertNotificationView(APIView):
             vehicle = alert.vehicle
             
             # Send email notification
-            subject = f"Overload Alert for Vehicle {vehicle.vehicle_id}"
+            subject = f"{EMAIL_CONFIG['EMAIL_SUBJECT_PREFIX']}Overload Alert for Vehicle {vehicle.vehicle_id}"
             message = (
                 f"Alert Type: {alert.alert_type}\n"
                 f"Vehicle: {vehicle.vehicle_name} ({vehicle.vehicle_id})\n"
@@ -560,8 +580,8 @@ class AlertNotificationView(APIView):
             send_mail(
                 subject,
                 message,
-                settings.DEFAULT_FROM_EMAIL,
-                ['jacksonnoel510@gmail.com', 'jacksonnoel510@gmail.com'],
+                EMAIL_CONFIG['DEFAULT_FROM_EMAIL'],
+                EMAIL_CONFIG['AUTHORITY_EMAILS'],
                 fail_silently=False,
             )
             

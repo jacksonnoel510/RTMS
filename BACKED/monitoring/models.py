@@ -29,6 +29,7 @@ class Vehicle(models.Model):
 
 class WeightReading(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+    #  on_delete=models.PROTECT
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     weight = models.FloatField()

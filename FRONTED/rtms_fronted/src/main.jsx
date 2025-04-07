@@ -11,6 +11,7 @@ import AlertPage from './pages/alert';
 import VehicleReports from './pages/report';
 import ProtectedRoute from '../src/pages/ ProtectedRoute';
 import './index.css';
+import { ErrorBoundary } from 'react-error-boundary';
 
 const router = createBrowserRouter([
   {
@@ -53,3 +54,20 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <RouterProvider router={router} />
   </React.StrictMode>
 );
+function ErrorFallback({ error, resetErrorBoundary }) {
+  return (
+    <div role="alert" className="error-boundary">
+      <h2>Something went wrong</h2>
+      <pre>{error.message}</pre>
+      <button onClick={resetErrorBoundary}>Try again</button>
+    </div>
+  );
+}
+
+// Wrap your routes with ErrorBoundary
+<ErrorBoundary FallbackComponent={ErrorFallback}>
+  <Routes>
+    <Route path="/vehicle-management" element={<VehicleManagement />} />
+    {/* other routes */}
+  </Routes>
+</ErrorBoundary>

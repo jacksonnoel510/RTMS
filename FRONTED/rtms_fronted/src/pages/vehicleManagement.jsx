@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiTruck, FiUser, FiPlus, FiEdit2, FiTrash2, FiSearch, 
   FiAlertTriangle, FiPieChart, FiSettings, FiLogOut, 
@@ -12,8 +12,10 @@ import VehiclePDFReport from './VehiclePDFReport';
 import '../css/VehicleManagement.css';
 import axios from 'axios';
 
+
 function VehicleManagement() {
-  // State management (keep your existing state)
+  const navigate = useNavigate();
+  // State management
   const [vehicles, setVehicles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -21,15 +23,14 @@ function VehicleManagement() {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
   const [newVehicle, setNewVehicle] = useState({
-    vehicle_name:'',
+    vehicle_name: '',
     vehicle_image: null,
     vehicle_id: '',
     description: '',
-    driver:'',
+    driver: '',
     owner: '',
     max_allowed_weight: '',
     status: 'active',
-   
   });
   const [maintenanceData, setMaintenanceData] = useState({
     vehicleId: '',
@@ -59,32 +60,26 @@ function VehicleManagement() {
     try {
       const response = await axios.get(`${API_URL}?page=${page}&page_size=${pageSize}`);
       
-      // Check if response.data exists and has the expected structure
       if (!response.data) {
         throw new Error('Invalid API response structure');
       }
   
-      // Handle different possible response structures
       const responseData = response.data.results || response.data;
       const totalCount = response.data.count || response.data.length || 0;
   
-      // Ensure responseData is an array before mapping
       const vehiclesArray = Array.isArray(responseData) ? responseData : [responseData];
-      
-      // Map backend data to frontend expected format
       const mappedVehicles = vehiclesArray.map(vehicle => ({
-        id: vehicle.id,
+        id: vehicle.id || '',
+        vehicle_name: vehicle.vehicle_name || '',
         plate: vehicle.vehicle_id || 'N/A',
         type: vehicle.description || 'Truck',
         maxWeight: vehicle.max_allowed_weight || 0,
-        driver:vehicle.driver || 'unknown Driver',
+        driver: vehicle.driver || 'Unknown Driver',
         owner: vehicle.owner || 'Unknown Owner',
         status: vehicle.status || 'active',
         lastService: vehicle.last_report_generated || 'Never',
-        lastReportedWeight: vehicle.last_reported_weight || 0,
-        weightAlert: vehicle.weight_alert || false,
         photoUrl: vehicle.vehicle_image || null,
-        history: vehicle.alert_history || []
+        vehicle_image: vehicle.vehicle_image || null
       }));
       
       setVehicles(mappedVehicles);
@@ -96,21 +91,23 @@ function VehicleManagement() {
       });
     } catch (error) {
       console.error('Error fetching vehicles:', error);
-      // Optionally set empty array if there's an error
       setVehicles([]);
     } finally {
       setLoading(false);
     }
   };
+
   const handlePageChange = (newPage) => {
     if (newPage > 0 && newPage <= pagination.totalPages) {
       setPagination(prev => ({ ...prev, currentPage: newPage }));
     }
   };
+
   const handlePageSizeChange = (e) => {
     const newSize = Number(e.target.value);
     setPagination(prev => ({ ...prev, pageSize: newSize, currentPage: 1 }));
   };
+
   const handleMaintenanceSubmit = (e) => {
     e.preventDefault();
     const updatedVehicles = vehicles.map(vehicle => {
@@ -139,11 +136,11 @@ function VehicleManagement() {
       cost: ''
     });
   };
+
   const handleMaintenanceChange = (e) => {
     const { name, value } = e.target;
     setMaintenanceData(prev => ({ ...prev, [name]: value }));
   };
-
 
   useEffect(() => {
     fetchVehicles(pagination.currentPage, pagination.pageSize);
@@ -156,18 +153,38 @@ function VehicleManagement() {
   };
 
   // Handle file upload
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewVehicle(prev => ({ ...prev, vehicle_image: file }));
+    }
+  };
+
+  // Filter vehicles with proper null checks
+  // In your VehicleManagement component, update the filteredVehicles function:
+
+const filteredVehicles = vehicles.filter(vehicle => {
+  // Ensure searchTerm is a string
+  const searchLower = typeof searchTerm === 'string' ? searchTerm.toLowerCase() : '';
   
-  const filteredVehicles = vehicles?.filter(vehicle => {
-    const plate = vehicle.plate?.toLowerCase() || '';
-    const type = vehicle.type?.toLowerCase() || '';
-    const driver = vehicle.driver?.toLowerCase() || '';
-  
-    return (
-      plate.includes(searchTerm.toLowerCase()) || 
-      type.includes(searchTerm.toLowerCase()) ||
-      driver.includes(searchTerm.toLowerCase())
-    );
-  });
+  // Safely get and convert vehicle properties to lowercase
+  const plate = vehicle?.plate ? String(vehicle.plate).toLowerCase() : '';
+  const type = vehicle?.type ? String(vehicle.type).toLowerCase() : '';
+  const driver = vehicle?.driver ? String(vehicle.driver).toLowerCase() : '';
+  const owner = vehicle?.owner ? String(vehicle.owner).toLowerCase() : '';
+
+  // Check if any property includes the search term
+  return (
+    plate.includes(searchLower) || 
+    type.includes(searchLower) ||
+    driver.includes(searchLower) ||
+    owner.includes(searchLower)
+  );
+});
+
+// Also add error boundaries to your routes:
+// In your router configuration (likely main.jsx or App.jsx):
+
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -178,83 +195,65 @@ function VehicleManagement() {
     navigate('/login');
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      
+      formData.append('vehicle_name', newVehicle.vehicle_name);
+      formData.append('vehicle_id', newVehicle.vehicle_id);
+      formData.append('description', newVehicle.description);
+      formData.append('driver', newVehicle.driver);
+      formData.append('owner', newVehicle.owner);
+      formData.append('max_allowed_weight', newVehicle.max_allowed_weight);
+      formData.append('status', newVehicle.status);
+      
+      if (fileInputRef.current?.files[0]) {
+        formData.append('vehicle_image', fileInputRef.current.files[0]);
+      } else if (newVehicle.vehicle_image && typeof newVehicle.vehicle_image === 'string') {
+        formData.append('vehicle_image', newVehicle.vehicle_image);
+      }
 
- // Update the handleSubmit function to properly handle file uploads
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const formData = new FormData();
-    
-    // Append all vehicle data to formData
-    formData.append('vehicle_name', newVehicle.vehicle_name);
-    formData.append('vehicle_id', newVehicle.vehicle_id);
-    formData.append('description', newVehicle.description);
-    formData.append('driver', newVehicle.driver);
-    formData.append('owner', newVehicle.owner);
-    formData.append('max_allowed_weight', newVehicle.max_allowed_weight);
-    formData.append('status', newVehicle.status);
-    
-    // Handle the file upload if it exists
-    if (fileInputRef.current?.files[0]) {
-      formData.append('vehicle_image', fileInputRef.current.files[0]);
-    } else if (newVehicle.vehicle_image && typeof newVehicle.vehicle_image === 'string') {
-      // If it's an existing image URL (from editing)
-      formData.append('vehicle_image', newVehicle.vehicle_image);
+      if (editingId) {
+        await axios.patch(`${API_URL}${editingId}/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } else {
+        await axios.post(API_URL, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
+
+      fetchVehicles(pagination.currentPage, pagination.pageSize);
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      alert(`Error saving vehicle: ${error.response?.data?.vehicle_image?.[0] || error.message}`);
     }
+  };
 
-    if (editingId) {
-      // For updates, use PATCH instead of PUT if your API supports partial updates
-      await axios.patch(`${API_URL}${editingId}/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-    } else {
-      // For new vehicles
-      await axios.post(API_URL, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+  const resetForm = () => {
+    setNewVehicle({
+      vehicle_name: '',
+      vehicle_id: '',
+      description: '',
+      max_allowed_weight: '',
+      driver: '',
+      owner: '',
+      status: 'active',
+      vehicle_image: null
+    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
+    setEditingId(null);
+  };
 
-    fetchVehicles(pagination.currentPage, pagination.pageSize);
-    setShowModal(false);
-    resetForm();
-  } catch (error) {
-    console.error('Error saving vehicle:', error);
-    console.log('Error details:', error.response?.data);
-    alert(`Error saving vehicle: ${error.response?.data?.vehicle_image?.[0] || error.message}`);
-  }
-};
-
-// Update the handlePhotoUpload function to store the file object
-const handlePhotoUpload = (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    setNewVehicle(prev => ({ ...prev, vehicle_image: file }));
-  }
-};
-
-// Update your resetForm function
-const resetForm = () => {
-  setNewVehicle({
-    vehicle_name: '',
-    vehicle_id: '',
-    description: '',
-    max_allowed_weight: '',
-    driver: '',
-    owner: '',
-    status: 'active',
-    vehicle_image: null
-  });
-  if (fileInputRef.current) {
-    fileInputRef.current.value = ''; // Clear the file input
-  }
-  setEditingId(null);
-};
-
-  // Delete Vehicle
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this vehicle?')) {
       try {
@@ -267,7 +266,6 @@ const resetForm = () => {
     }
   };
 
-  // Bulk Delete Vehicles
   const handleBulkDelete = async () => {
     if (window.confirm(`Are you sure you want to delete ${selectedVehicles.length} vehicles?`)) {
       try {
@@ -284,33 +282,50 @@ const resetForm = () => {
     }
   };
 
-  // Edit Vehicle - Load data into form
   const handleEdit = (vehicle) => {
     setNewVehicle({
-      vehicle_name: vehicle.vehicle_name,
-      vehicle_id: vehicle.vehicle_id,
-      description: vehicle.description,
-      max_allowed_weight: vehicle.max_allowed_weight,
-      driver:vehicle.driver,
-      owner: vehicle.owner,
-      status: vehicle.status,
-      vehicle_image: vehicle.vehicle_image
+      vehicle_name: vehicle.vehicle_name || '',
+      vehicle_id: vehicle.vehicle_id || '',
+      description: vehicle.description || '',
+      max_allowed_weight: vehicle.maxWeight || '',
+      driver: vehicle.driver || '',
+      owner: vehicle.owner || '',
+      status: vehicle.status || 'active',
+      vehicle_image: vehicle.vehicle_image || null
     });
     setEditingId(vehicle.id);
     setShowModal(true);
   };
+
+  const toggleVehicleSelection = (id) => {
+    setSelectedVehicles(prev => 
+      prev.includes(id) 
+        ? prev.filter(vehicleId => vehicleId !== id) 
+        : [...prev, id]
+    );
+  };
+
+  const handleBulkStatusChange = (status) => {
+    const updatedVehicles = vehicles.map(vehicle => 
+      selectedVehicles.includes(vehicle.id) ? { ...vehicle, status } : vehicle
+    );
+    setVehicles(updatedVehicles);
+    setSelectedVehicles([]);
+  };
+
   const csvData = [
     ['Plate Number', 'Type', 'Max Weight', 'Driver', 'Status', 'Last Service'],
     ...vehicles.map(vehicle => [
-      vehicle.plate,
-      vehicle.type,
-      vehicle.maxWeight,
-      vehicle.driver,
-      vehicle.status,
-      vehicle.lastService
+      vehicle.plate || 'N/A',
+      vehicle.type || 'N/A',
+      vehicle.maxWeight || 'N/A',
+      vehicle.driver || 'N/A',
+      vehicle.status || 'N/A',
+      vehicle.lastService || 'N/A'
     ])
   ];
-  // Your existing JSX remains the same, just update the form section:
+
+  // JSX remains the same as in your original code
   return (
     <div className="vehicle-management-container">
      <div className="sidebar">

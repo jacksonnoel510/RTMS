@@ -120,7 +120,7 @@ console.log(alertsResponse);
 
         if (hasLocation && allVehicles.length === 0) {
           setMapCenter(location);
-          setMapZoom(12);
+          setMapZoom(5);
         }
 
         return {
@@ -184,11 +184,11 @@ console.log(alertsResponse);
 
     const dataPollingInterval = setInterval(() => {
       fetchDashboardData();
-    }, 1500000);
+    }, 8000);
 
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 100000);
+    }, 10000);
 
     return () => {
       clearInterval(dataPollingInterval);
@@ -429,17 +429,17 @@ console.log(alertsResponse);
                         <p>Vehicle: {alert.vehicle_name} ({alert.vehicle_id})</p>
                         <p>message: {alert.message}</p>
                         <p>Time: {alert.time}</p>
-                        {alert.location && (
+                        {/* {alert.location && (
                           <button 
                             className="view-location-btn"
                             onClick={() => {
                               setMapCenter(alert.location);
-                              setMapZoom(6); // Changed from 2 to 12 for better view
+                              setMapZoom(6); 
                             }}
                           >
                             <FiMapPin /> View Location
                           </button>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   ))}
@@ -464,7 +464,7 @@ console.log(alertsResponse);
         zoom={mapZoom}
         style={{ height: '100%', width: '100%' }}
         minZoom={6}
-        maxZoom={6}  // Allow more zoom for better inspection
+        maxZoom={18}
         maxBounds={[
           [-12.5, 29.0],
           [-0.9, 41.0]
@@ -484,7 +484,7 @@ console.log(alertsResponse);
             eventHandlers={{
               click: () => {
                 setMapCenter(vehicle.location);
-                setMapZoom(12); // Zoom in more when clicking a marker
+                setMapZoom(5); 
               }
             }}
           >

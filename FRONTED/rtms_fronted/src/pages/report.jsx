@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiTruck, FiUser, FiAlertTriangle, FiPieChart, FiSettings, 
   FiLogOut, FiDownload, FiCalendar, FiClock, FiRefreshCw,
@@ -25,7 +25,6 @@ import { FiBell, FiCheck, FiX, FiSend } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 // Register ChartJS components
 ChartJS.register(
@@ -55,6 +54,73 @@ const formatNumber = (num) => {
   return num.toLocaleString();
 };
 
+// Geocoding utility function
+const reverseGeocode = async (lat, lon) => {
+  // Check if coordinates are valid numbers
+  if (isNaN(lat) || isNaN(lon)) {
+    console.warn('Invalid coordinates:', lat, lon);
+    return 'Unknown Location';
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+    );
+    const data = await response.json();
+    
+    // Extract and format the location name
+    if (data.display_name) {
+      // Split the display name by commas and take first two parts
+      const parts = data.display_name.split(',').map(part => part.trim());
+      const shortName = parts.slice(0, 2).join(', ');
+      return shortName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    }
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  }
+};
+
+// Custom hook for geocoding
+const useGeocodedLocations = (alerts) => {
+  const [locationNames, setLocationNames] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+
+    const processLocations = async () => {
+  setIsLoading(true);
+  const newLocationNames = {};
+  
+  for (const alert of alerts) {
+    console.log()
+    if (alert.location && alert.location.includes(',')) {
+      const [latStr, lonStr] = alert.location.split(',');
+      const lat = parseFloat(alert.coordinates[0]);
+      const lon = parseFloat(alert.coordinates[1]);
+      // Only proceed if both coordinates are valid numbers
+      if (!isNaN(lat) && !isNaN(lon)) {
+        const name = await reverseGeocode(lat, lon);
+        newLocationNames[alert.location] = name;
+      } else {
+        newLocationNames[alert.location] = 'Invalid Location';
+      }
+    } else {
+      newLocationNames[alert.location] = 'Unknown Location';
+    }
+  }
+  
+  setLocationNames(newLocationNames);
+  setIsLoading(false);
+};
+
+    processLocations();
+  }, [alerts]);
+console.log(locationNames)
+  return { locationNames, isLoading };
+};
+
 function VehicleReports() {
   const navigate = useNavigate();
   const API_URL = 'http://localhost:8000/api/';
@@ -66,13 +132,13 @@ function VehicleReports() {
     normalVehicles: 0,
     overloadAlerts: []
   });
-  console.log(reportData);
+
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().setDate(1)).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
   
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [alertFilters, setAlertFilters] = useState({
     status: 'all',
@@ -80,19 +146,30 @@ function VehicleReports() {
     minOverload: 0
   });
 
-  // Safe data processing for alerts
+  // Geocoding hook
+  const { locationNames, isLoading: isLoadingLocations } = useGeocodedLocations(reportData.overloadAlerts);
+  // Safe data processing for alerts with notification status
   const processAlertData = (alert) => ({
     id: alert.id || 0,
     vehicleId: alert.vehicle?.vehicle_id || 'Unknown',
     weight: alert.current_weight || 0,
     overload: (alert.current_weight || 0) - (alert.vehicle?.max_allowed_weight || 0),
-    location: alert.location || 'Unknown Location',
+    location: alert.location || (alert.latitude && alert.longitude 
+      ? `${alert.latitude},${alert.longitude}` 
+      : 'Unknown Location'),
     time: alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'N/A',
     status: alert.severity === 'high' ? 'critical' : 
            alert.severity === 'medium' ? 'sensor malfunction' : 'normal',
     coordinates: alert.latitude && alert.longitude ? 
                 [parseFloat(alert.latitude), parseFloat(alert.longitude)] : 
-                [-6.7924, 39.2083]
+                [-6.7924, 39.2083],
+    notified: alert.notified || false
+  });
+
+  // Sort alerts with unnotified first
+  const sortedAlerts = [...reportData.overloadAlerts].sort((a, b) => {
+    if (a.notified === b.notified) return 0;
+    return a.notified ? 1 : -1;
   });
 
   // Fetch report data from backend
@@ -125,7 +202,6 @@ function VehicleReports() {
     } catch (error) {
       console.error('Error fetching report data:', error);
       toast.error('Failed to load report data');
-      // Set empty state on error
       setReportData({
         criticalAlerts: 0,
         warningAlerts: 0,
@@ -289,7 +365,7 @@ function VehicleReports() {
   };
 
   // Filter alerts based on current filters
-  const filteredAlerts = reportData.overloadAlerts.filter(alert => {
+  const filteredAlerts = sortedAlerts.filter(alert => {
     if (!alert) return false;
     
     // Status filter
@@ -309,14 +385,15 @@ function VehicleReports() {
 
   // Safe CSV data preparation
   const csvData = [
-    ['Vehicle ID', 'Weight', 'Overload', 'Location', 'Time', 'Status'],
+    ['Vehicle ID', 'Weight', 'Overload', 'Location', 'Time', 'Status', 'Notified'],
     ...filteredAlerts.map(alert => [
       alert.vehicleId || 'N/A',
       `${formatNumber(alert.weight)} kg`,
-      `${alert.overload > 0 ? '+' : ''}${formatNumber(alert.overload)} kg`,
+      `${alert.overload > 0 ? '+' : ''}{formatNumber(alert.overload)} kg`,
       alert.location || 'N/A',
       alert.time || 'N/A',
-      alert.status || 'N/A'
+      alert.status || 'N/A',
+      alert.notified ? 'Yes' : 'No'
     ])
   ];
 
@@ -329,9 +406,24 @@ function VehicleReports() {
     navigate('/login');
   };
 
-  useEffect(() => {
-    loadReportData();
-  }, []);
+  // Render location with geocoding
+  const renderLocation = (location) => {
+    if (!location || !location.includes(',')) return 'N/A';
+    
+    if (isLoadingLocations || !locationNames[location]) {
+      return (
+        <span className="loading-location">
+          <FiMapPin /> Loading...
+        </span>
+      );
+    }
+    
+    return (
+      <span className="location-name">
+        <FiMapPin /> {locationNames[location]}
+      </span>
+    );
+  };
 
   const NotifyAction = ({ alert, onNotificationSent }) => {
     const [isNotifying, setIsNotifying] = useState(false);
@@ -376,16 +468,20 @@ function VehicleReports() {
           </span>
         ) : (
           <button 
-            className={`notify-btn ${alert.status}`}
+            className={`notify-btn ${alert.notified ? 'notified' : alert.status}`}
             onClick={handleNotify}
-            disabled={isNotifying}
+            disabled={isNotifying || alert.notified}
           >
-            {isNotifying ? 'Sending...' : <FiBell />}
+            {isNotifying ? 'Sending...' : alert.notified ? 'Notified' : <FiBell />}
           </button>
         )}
       </div>
     );
   };
+
+  useEffect(() => {
+    loadReportData();
+  }, []);
 
   if (isLoading) {
     return (
@@ -571,7 +667,7 @@ function VehicleReports() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAlerts.slice(0, 5).map((alert, index) => (
+                      {filteredAlerts.slice(0, 4).map((alert, index) => (
                         <tr key={index} className={`alert-row ${alert.status}`}>
                           <td>{alert.vehicleId || 'N/A'}</td>
                           <td>{formatNumber(alert.weight)} kg</td>
@@ -581,7 +677,7 @@ function VehicleReports() {
                             </span>
                           </td>
                           <td>
-                            <FiMapPin /> {alert.location || 'N/A'}
+                            {renderLocation(alert.location)}
                           </td>
                           <td>{alert.time || 'N/A'}</td>
                           <td>
@@ -590,10 +686,35 @@ function VehicleReports() {
                             </span>
                           </td>
                           <td>
-                            <NotifyAction alert={alert} onNotificationSent={() => {}} />
+                            <NotifyAction 
+                              alert={alert} 
+                              onNotificationSent={(id) => {
+                                // Update the alert's notified status
+                                const updatedAlerts = reportData.overloadAlerts.map(a => 
+                                  a.id === id ? {...a, notified: true} : a
+                                );
+                                setReportData(prev => ({
+                                  ...prev,
+                                  overloadAlerts: updatedAlerts
+                                }));
+                              }} 
+                            />
                           </td>
                         </tr>
                       ))}
+                      {filteredAlerts.length > 4 && (
+                        <tr className="more-alerts-row">
+                          <td colSpan="7" style={{ textAlign: 'center' }}>
+                            Showing 4 of {filteredAlerts.length} alerts
+                            <button 
+                              className="view-all-btn"
+                              onClick={() => setActiveTab('alerts')}
+                            >
+                              View All
+                            </button>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -685,7 +806,7 @@ function VehicleReports() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredAlerts.map((alert, index) => (
+                    {filteredAlerts.slice(0, 3).map((alert, index) => (
                       <tr key={index} className={`alert-row ${alert.status}`}>
                         <td>{alert.vehicleId || 'N/A'}</td>
                         <td>{formatNumber(alert.weight)} kg</td>
@@ -695,7 +816,7 @@ function VehicleReports() {
                           </span>
                         </td>
                         <td>
-                          <FiMapPin /> {alert.location || 'N/A'}
+                          {renderLocation(alert.location)}
                         </td>
                         <td>{alert.time || 'N/A'}</td>
                         <td>
@@ -705,6 +826,18 @@ function VehicleReports() {
                         </td>
                       </tr>
                     ))}
+                    {filteredAlerts.length > 3 && (
+                      <tr className="more-alerts-row">
+                        <td colSpan="6" style={{ textAlign: 'center' }}>
+                          Showing 3 of {filteredAlerts.length} alerts
+                          {filteredAlerts.filter(a => !a.notified).length > 0 && (
+                            <span style={{ marginLeft: '8px', color: '#e74c3c' }}>
+                              ({filteredAlerts.filter(a => !a.notified).length} unattended)
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -780,7 +913,7 @@ function VehicleReports() {
                     <Marker key={alert.id} position={alert.coordinates || [-6.7924, 39.2083]}>
                       <Popup>
                         <strong>{alert.vehicleId || 'N/A'}</strong><br />
-                        {alert.location || 'N/A'}<br />
+                        {renderLocation(alert.location)}<br />
                         Weight: {formatNumber(alert.weight)} kg<br />
                         Overload: {alert.overload > 0 ? '+' : ''}{formatNumber(alert.overload)} kg<br />
                         Status: <span className={`status-text ${alert.status}`}>{alert.status || 'N/A'}</span>
