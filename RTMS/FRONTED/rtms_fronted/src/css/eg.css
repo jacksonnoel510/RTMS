@@ -1,0 +1,26 @@
+
+
+/* Date Controls */
+.date-controls {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+
+
+.modern-date {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.modern-date:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+
