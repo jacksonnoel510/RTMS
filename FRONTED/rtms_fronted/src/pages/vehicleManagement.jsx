@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiTruck, FiUser, FiPlus, FiEdit2, FiTrash2, FiSearch, 
   FiAlertTriangle, FiPieChart, FiSettings, FiLogOut, 
-  FiDownload, FiUpload, FiCalendar, FiClock, FiCheck, FiX,
+  FiDownload, FiUpload, FiCalendar, FiClock, FiCheck, FiX,FiDollarSign,
   FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight
 } from 'react-icons/fi';
 import { CSVLink } from 'react-csv';
@@ -347,6 +347,9 @@ const filteredVehicles = vehicles.filter(vehicle => {
               <Link to="/reports"><FiPieChart className="nav-icon" /> Reports</Link>
             </li>
             <li>
+            <li>
+                <Link to="/penalties"><FiDollarSign className="nav-icon" /> Penalties</Link>
+                </li>
               <Link to="/settings"><FiSettings className="nav-icon" /> System Settings</Link>
             </li>
             <li className="logout">

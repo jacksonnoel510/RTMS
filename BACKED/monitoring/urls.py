@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     VehicleViewSet, WeightReadingViewSet, AlertViewSet,
     RegisterView, LoginView, UserView,
-    AlertFrequencyView, WeightTrendView, AlertNotificationView, ReportView
+    AlertFrequencyView, WeightTrendView, AlertNotificationView, ReportView,get_penalties,mark_as_paid,get_penalty_rate,mark_as_paid
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -24,9 +24,9 @@ urlpatterns = [
     path('api/reports/summary/', ReportView.as_view(), name='report-summary'),
     path('api/reports/alert-frequency/', AlertFrequencyView.as_view(), name='alert-frequency'),
     path('api/reports/weight-trends/', WeightTrendView.as_view(), name='weight-trends'),
-    
-    # Alert notification
-    path('api/alerts/<int:pk>/notify/', AlertNotificationView.as_view(), name='alert-notify'),
+    path('api/penalties/rate/', get_penalty_rate),
+    path('api/penalties/', get_penalties),
+    path('api/penalties/<int:penalty_id>/mark-paid/', mark_as_paid, name='mark-penalty-paid'),
 ]
 
 if settings.DEBUG:

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../css/Dashboard.css';
-import { FiAlertTriangle, FiTruck, FiUser, FiClock, FiPieChart, FiSettings, FiLogOut, FiMapPin } from 'react-icons/fi';
+import { FiAlertTriangle, FiTruck, FiUser, FiClock, FiPieChart, FiSettings, FiLogOut, FiMapPin,FiDollarSign } from 'react-icons/fi';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -271,6 +271,9 @@ console.log(alertsResponse);
               <Link to="/reports"><FiPieChart className="nav-icon" /> Reports</Link>
             </li>
             <li>
+               <li>
+                  <Link to="/penalties"><FiDollarSign className="nav-icon" /> Penalties</Link>
+                </li>
               <Link to="/settings"><FiSettings className="nav-icon" /> System Settings</Link>
             </li>
             <li className="logout">

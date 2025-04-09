@@ -13,6 +13,11 @@
   --border-radius: 8px;
   --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background-color: #f5f7fa;
+  overflow:scroll;
+}
 
 /* Base Layout */
 .vehicle-management-container {
@@ -886,7 +891,7 @@ background-position: center;
   }
   
   .card-value {
-    font-size: 2rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--dark-text);
     margin-bottom: 0.3rem;
@@ -1388,4 +1393,440 @@ background-position: center;
 
 .remove-photo:hover {
   background: rgba(0,0,0,0.9);
+}
+
+.generate-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.generate-btn:hover {
+  background-color: #2980b9;
+}
+.generate-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+.date-controls {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+
+
+.modern-date {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.modern-date:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+
+.generate-btn:hover {
+  background-color: #2980b9;
+}
+
+/* Penalty Settings Section */
+.penalty-settings {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.penalty-settings h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+}
+
+.settings-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.settings-form .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.settings-form input[type="number"] {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.update-btn {
+  background-color:var(--accent-orange);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.3s;
+  height: fit-content;
+}
+
+.update-btn:hover {
+  background-color: #d35400;
+}
+
+/* Penalty Summary Cards */
+.penalty-summary {
+  display: flex;
+  gap: 20px;
+  margin-top: 25px;
+}
+
+.summary-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  flex: 1;
+  text-align: center;
+  border-left: 4px solid #3498db;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+}
+
+.summary-card .card-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.summary-card .card-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+/* Penalties Table */
+.penalties-table-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+.penalties-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.penalties-table th {
+  background-color: var(--primary-blue);
+  color: var(--light-gray);
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #eee;
+}
+
+.penalties-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  color: #34495e;
+}
+
+.penalties-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.paid {
+  background-color: #e8f5e9;
+  color: #27ae60;
+}
+
+.status-badge.unpaid {
+  background-color: #ffebee;
+  color: #e74c3c;
+}
+
+/* No Data Message */
+.no-data {
+  padding: 2rem;
+  text-align: center;
+  color: var(--dark-text);
+  opacity: 0.7;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 1000;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #3498db;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .vehicle-management-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .penalty-summary {
+    flex-direction: column;
+  }
+  
+  .settings-form {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .settings-form input[type="number"] {
+    max-width: 100%;
+  }
+}
+
+/* Animation for table rows */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.penalties-table tbody tr {
+  animation: fadeIn 0.3s ease-out;
+  animation-fill-mode: both;
+}
+
+.penalties-table tbody tr:nth-child(1) { animation-delay: 0.1s; }
+.penalties-table tbody tr:nth-child(2) { animation-delay: 0.2s; }
+.penalties-table tbody tr:nth-child(3) { animation-delay: 0.3s; }
+.penalties-table tbody tr:nth-child(4) { animation-delay: 0.4s; }
+.penalties-table tbody tr:nth-child(5) { animation-delay: 0.5s; }
+
+/* Tooltip for penalty rate */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  margin-left: 5px;
+  cursor: help;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.8rem;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Add this to your JSX for the tooltip:
+<div className="tooltip">
+  <FiInfoCircle size={14} />
+  <span className="tooltiptext">Penalty rate applies per violation occurrence</span>
+</div>
+*/
+.filter-btn, .export-btn, .print-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 15px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid #ddd;
+  background-color: white;
+}
+
+.filter-btn:hover, .export-btn:hover, .print-btn:hover {
+  background-color: #f0f0f0;
+}
+.filters-panel {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.filters-panel input, .filters-panel select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100%;
+  font-size: 0.9rem;
+}
+/* Vehicle summary row styling */
+.vehicle-summary-row {
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.vehicle-summary-row:hover {
+  background-color: #e9ecef;
+}
+
+.vehicle-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.registration {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.unpaid-amount {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Penalty details styling */
+.penalty-details-row {
+  background-color: #f8f9fa;
+}
+
+.penalty-details-container {
+  padding: 1rem;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nested-penalties-table {
+  width: 100%;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.nested-penalties-table th {
+  background-color: #f1f3f5;
+}
+
+.paid-penalty {
+  opacity: 0.7;
+}
+
+.unpaid-penalty {
+  font-weight: 500;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.details-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.pay-all-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+/* Chevron animation */
+.action-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.action-btn:hover svg {
+  transform: translateY(1px);
 }

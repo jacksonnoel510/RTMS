@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiTruck, FiUser, FiAlertTriangle, FiPieChart, FiSettings, 
   FiLogOut, FiDownload, FiCalendar, FiClock, FiRefreshCw,
-  FiMapPin, FiTrendingUp, FiTrendingDown, FiBarChart2, FiFilter
+  FiMapPin, FiTrendingUp, FiTrendingDown, FiBarChart2, FiFilter,FiDollarSign
 } from 'react-icons/fi';
 import { CSVLink } from 'react-csv';
 import { Bar, Line } from 'react-chartjs-2';
@@ -515,6 +515,9 @@ function VehicleReports() {
             <li className="active">
               <Link to="/reports"><FiBarChart2 className="nav-icon" /> Reports</Link>
             </li>
+            <li>
+                  <Link to="/penalties"><FiDollarSign className="nav-icon" /> Penalties</Link>
+                </li>
             <li>
               <Link to="/settings"><FiSettings className="nav-icon" /> System Settings</Link>
             </li>

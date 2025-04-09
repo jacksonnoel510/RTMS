@@ -12,6 +12,7 @@ import VehicleReports from './pages/report';
 import ProtectedRoute from '../src/pages/ ProtectedRoute';
 import './index.css';
 import { ErrorBoundary } from 'react-error-boundary';
+import PenaltyManagement from '../src/pages/PenaltyManagement';
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,11 @@ const router = createBrowserRouter([
       {
         path: '/alerts',
         element: <AlertPage />,
+        
+      },
+      {
+        path:"/penalties", 
+        element:<PenaltyManagement />
       }
     ]
   }

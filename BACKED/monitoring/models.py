@@ -2,7 +2,7 @@
 
 # Create your models here.
 from django.db import models
-
+from django.utils import timezone
 class Vehicle(models.Model):
     vehicle_name = models.CharField(max_length=50, default="Unknown Vehicle")
     vehicle_image = models.ImageField(upload_to='vehicle_images/', null=True, blank=True)
@@ -22,7 +22,10 @@ class Vehicle(models.Model):
     alert_history = models.JSONField(default=list, blank=True)
     average_weight = models.FloatField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True,null=True)
-
+    is_currently_overloaded = models.BooleanField(
+    default=False,
+    help_text="Whether the vehicle is currently in an overloaded state"
+)
     def __str__(self):
         return self.vehicle_name
 
@@ -64,6 +67,7 @@ class Alert(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
     map_url = models.URLField(blank=True, null=True)
+    
     class Meta:
         ordering = ['-timestamp']
 
@@ -73,3 +77,131 @@ class Report(models.Model):
     report_data = models.JSONField()  
     generated_at = models.DateTimeField(auto_now_add=True)
     file_url = models.URLField(null=True, blank=True) 
+# models.py
+
+class Penalty(models.Model):
+    PENALTY_STATUS_CHOICES = [
+        ('unpaid', 'Unpaid'),
+        ('paid', 'Paid'),
+        ('disputed', 'Disputed'),
+        ('waived', 'Waived'),
+    ]
+
+    vehicle = models.ForeignKey(
+        'Vehicle',
+        on_delete=models.CASCADE,
+        related_name='penalties',
+        help_text="The vehicle that received this penalty"
+    )
+    
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Penalty amount in TZS"
+    )
+    
+    overload_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="How much the vehicle was overloaded (in kg)"
+    )
+    
+    timestamp = models.DateTimeField(
+        default=timezone.now,
+        help_text="When the penalty was issued"
+    )
+    
+    paid = models.BooleanField(
+        default=False,
+        help_text="Whether the penalty has been paid"
+    )
+    
+    status = models.CharField(
+        max_length=10,
+        choices=PENALTY_STATUS_CHOICES,
+        default='unpaid',
+        help_text="Current status of the penalty"
+    )
+    
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="GPS latitude where violation occurred"
+    )
+    
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="GPS longitude where violation occurred"
+    )
+    
+    paid_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the penalty was paid"
+    )
+    
+    reference_number = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Payment reference number"
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        help_text="Any additional notes about this penalty"
+    )
+
+    class Meta:
+        verbose_name_plural = "penalties"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['vehicle', 'timestamp']),
+            models.Index(fields=['status', 'paid']),
+        ]
+
+    def __str__(self):
+        return f"Penalty #{self.id} - {self.vehicle.vehicle_name} - {self.amount} TZS"
+
+    def mark_as_paid(self, reference_number=None):
+        """Mark this penalty as paid"""
+        self.paid = True
+        self.status = 'paid'
+        self.paid_date = timezone.now()
+        if reference_number:
+            self.reference_number = reference_number
+        self.save()
+
+class PenaltyRate(models.Model):
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=50000.00,
+        help_text="Current penalty amount in TZS"
+    )
+    
+    effective_from = models.DateTimeField(
+        default=timezone.now,
+        help_text="When this rate became effective"
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        help_text="Reason for rate change"
+    )
+
+    class Meta:
+        get_latest_by = 'effective_from'
+
+    def __str__(self):
+        return f"Penalty Rate: {self.amount} TZS (from {self.effective_from.date()})"
+
+    def save(self, *args, **kwargs):
+        # Ensure there's only one active rate
+        if not self.pk:
+            self.__class__.objects.all().update(is_active=False)
+        super().save(*args, **kwargs)

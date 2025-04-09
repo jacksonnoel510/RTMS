@@ -2,7 +2,7 @@ import requests
 from django.db.models import Max
 from django.utils import timezone
 from rest_framework import viewsets
-from .models import Vehicle, Alert, WeightReading, Report
+from .models import Vehicle, Alert, WeightReading, Report,Penalty, PenaltyRate
 from .serializers import VehicleSerializer, WeightReadingSerializer, AlertSerializer, ReportSerializer
 from django.core.mail import send_mail
 from django.core.mail import EmailMessage
@@ -21,7 +21,13 @@ from django.db.models import Count, Avg, Q
 from django.core.mail import send_mail
 from django.conf import settings
 from .config import EMAIL_CONFIG, API_KEYS, ALERT_CONFIG, MAP_CONFIG, REPORT_CONFIG, WEIGHT_READING_CONFIG
-
+from rest_framework.decorators import api_view, permission_classes
+from datetime import datetime
+from rest_framework.decorators import api_view, permission_classes
+from django.db import transaction
+from django.conf import settings
+import logging
+logger = logging.getLogger(__name__)
 
 @authentication_classes([JWTAuthentication])
 class UserView(APIView):
@@ -138,7 +144,6 @@ class VehicleViewSet(viewsets.ModelViewSet):
             longitude=longitude
         )
 
-
 class WeightReadingViewSet(viewsets.ModelViewSet):
     queryset = WeightReading.objects.all()
     serializer_class = WeightReadingSerializer
@@ -151,6 +156,12 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
     def update_vehicle_data(self, weight_reading):
         vehicle = weight_reading.vehicle
 
+        # Track previous state before updating
+        previous_state = {
+            'was_overloaded': vehicle.is_currently_overloaded,
+            'current_weight': vehicle.current_weight
+        }
+
         vehicle.current_weight = weight_reading.weight
         vehicle.last_reported_weight = weight_reading.weight
         vehicle.latitude = weight_reading.latitude
@@ -159,14 +170,103 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
 
         self.update_average_weight(vehicle)
 
+        # Determine if currently overloaded
+        vehicle.is_currently_overloaded = (
+            weight_reading.weight > vehicle.max_allowed_weight + ALERT_CONFIG['OVERLOAD_THRESHOLD']
+        )
+
         vehicle.weight_alert = (
-            weight_reading.weight > vehicle.max_allowed_weight + ALERT_CONFIG['OVERLOAD_THRESHOLD'] or
+            vehicle.is_currently_overloaded or
             weight_reading.status == 'suspected' or
             weight_reading.sensor_health == 'malfunctioning'
         )
 
         vehicle.status = 'active'
         vehicle.save()
+
+        # Check for state transition that warrants a penalty
+        self.check_for_penalty(vehicle, weight_reading, previous_state)
+
+    def check_for_penalty(self, vehicle, weight_reading, previous_state):
+        """
+        Check if we need to issue a penalty based on state transition:
+        - From normal to overloaded = new penalty
+        - From overloaded to normal = reset tracking
+        """
+        current_weight = weight_reading.weight
+        max_allowed = vehicle.max_allowed_weight
+        overload_threshold = ALERT_CONFIG['OVERLOAD_THRESHOLD']
+        
+        # Check if transitioned from normal to overloaded
+        if (not previous_state['was_overloaded'] and 
+            current_weight > max_allowed + overload_threshold):
+            
+            # Create a new penalty
+            self.create_penalty(vehicle, weight_reading)
+            
+        # If returned to normal weight, we'll be ready for next penalty
+        elif (previous_state['was_overloaded'] and 
+              current_weight <= max_allowed):
+            
+            # Vehicle returned to normal state - no action needed
+            pass
+
+    def create_penalty(self, vehicle, weight_reading):
+        """Create a new penalty record for the vehicle"""
+        from .models import Penalty, PenaltyRate  # Avoid circular imports
+        
+        try:
+            with transaction.atomic():
+                # Get the current penalty rate
+                rate = PenaltyRate.objects.get(id=1)
+                
+                # Calculate overload amount
+                overload_amount = weight_reading.weight - vehicle.max_allowed_weight
+                
+                # Create the penalty
+                Penalty.objects.create(
+                    vehicle=vehicle,
+                    overload_amount=overload_amount,
+                    amount=rate.amount,
+                    timestamp=weight_reading.timestamp,
+                    latitude=weight_reading.latitude,
+                    longitude=weight_reading.longitude,
+                    paid=False
+                )
+                
+                # Create an alert about the penalty
+                self.create_penalty_alert(vehicle, weight_reading, rate.amount)
+                
+        except Exception as e:
+            # Log the error but don't fail the weight reading
+            logger.error(f"Failed to create penalty: {str(e)}")
+
+    def create_penalty_alert(self, vehicle, weight_reading, penalty_amount):
+        """Create an alert about the penalty that was issued"""
+        location = f"Latitude: {weight_reading.latitude}, Longitude: {weight_reading.longitude}"
+        map_url = self.generate_map_url(weight_reading.latitude, weight_reading.longitude)
+        
+        message = (
+            f"New penalty issued: {penalty_amount:,} TZS for overload violation. "
+            f"Current weight: {weight_reading.weight:,} kg "
+            f"(Max allowed: {vehicle.max_allowed_weight:,} kg) "
+            f"for {vehicle.vehicle_name}"
+        )
+
+        alert = self.create_alert(
+            vehicle,
+            'penalty_issued',
+            message,
+            weight_reading.weight,
+            weight_reading.latitude,
+            weight_reading.longitude,
+            location,
+            map_url,
+            severity=ALERT_CONFIG['CRITICAL_SEVERITY_LEVEL']
+        )
+        
+        # Send notification to authorities
+        # self.send_alert_to_authorities(alert, weight_reading.latitude, weight_reading.longitude)
 
     def update_average_weight(self, vehicle):
         recent_readings = WeightReading.objects.filter(
@@ -219,7 +319,7 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
             location,
             map_url
         )
-        self.send_alert_to_authorities(alert, weight_reading.latitude, weight_reading.longitude)
+        # self.send_alert_to_authorities(alert, weight_reading.latitude, weight_reading.longitude)
 
     def create_sensor_malfunction_alert(self, weight_reading):
         location = f"Latitude: {weight_reading.latitude}, Longitude: {weight_reading.longitude}"
@@ -331,8 +431,7 @@ class WeightReadingViewSet(viewsets.ModelViewSet):
             latitude=latitude,
             longitude=longitude
         )
-
-
+    
 class AlertViewSet(viewsets.ModelViewSet):
     queryset = Alert.objects.all()
     serializer_class = AlertSerializer
@@ -604,3 +703,274 @@ class AlertNotificationView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+# views.py
+
+
+# Get penalties within date range
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_penalties(request):
+#     start_date = request.GET.get('start_date')
+#     end_date = request.GET.get('end_date')
+    
+#     try:
+#         start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
+#         end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
+        
+#         penalties = Penalty.objects.all()
+        
+#         if start:
+#             penalties = penalties.filter(timestamp__gte=start)
+#         if end:
+#             penalties = penalties.filter(timestamp__lte=end)
+            
+#         data = [{
+#             'id': p.id,
+#             'vehicle_id': p.vehicle.vehicle_id,
+#             'overload_amount': p.overload_amount,
+#             'timestamp': p.timestamp,
+#             'amount': p.amount,
+#             'paid': p.paid
+#         } for p in penalties]
+        
+#         return Response(data)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=400)
+
+# Get current penalty rate
+@api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+def get_penalty_rate(request):
+    """
+    Get current penalty rate
+    """
+    try:
+        rate = PenaltyRate.objects.latest('effective_from')
+        return Response({
+            'rate': rate.amount,
+            'effective_from': rate.effective_from,
+            'notes': rate.notes
+        })
+    except PenaltyRate.DoesNotExist:
+        logger.error("No penalty rate configured")
+        return Response({
+            'error': 'No penalty rate configured'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error getting penalty rate: {str(e)}")
+        return Response({
+            'error': 'Failed to get penalty rate'
+        }, status=500)
+
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def update_penalty_rate(request):
+    """
+    Update penalty rate with effective date and notes
+    """
+    try:
+        new_rate = request.data.get('rate')
+        notes = request.data.get('notes', '')
+        
+        if not new_rate or float(new_rate) <= 0:
+            return Response({
+                'error': 'Rate must be a positive number'
+            }, status=400)
+            
+        # Create new rate record (maintaining history)
+        rate = PenaltyRate.objects.create(
+            amount=float(new_rate),
+            notes=notes
+        )
+        
+        return Response({
+            'success': True,
+            'new_rate': rate.amount,
+            'effective_from': rate.effective_from
+        })
+    except Exception as e:
+        logger.error(f"Error updating penalty rate: {str(e)}")
+        return Response({
+            'error': 'Failed to update penalty rate'
+        }, status=500)
+
+@api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+def get_penalties(request):
+    """
+    Get filtered list of penalties with advanced filtering
+    """
+    try:
+        # Date range filtering
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
+        # Additional filters
+        vehicle_id = request.GET.get('vehicle_id')
+        status = request.GET.get('status')
+        min_overload = request.GET.get('min_overload')
+        max_overload = request.GET.get('max_overload')
+        paid = request.GET.get('paid')
+        
+        penalties = Penalty.objects.select_related('vehicle').all()
+        
+        # Apply date filters
+        if start_date:
+            try:
+                start = datetime.strptime(start_date, '%Y-%m-%d')
+                penalties = penalties.filter(timestamp__gte=start)
+            except ValueError:
+                return Response({
+                    'error': 'Invalid start date format (use YYYY-MM-DD)'
+                }, status=400)
+                
+        if end_date:
+            try:
+                # Add 1 day to include the entire end date
+                end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                penalties = penalties.filter(timestamp__lt=end)  # Use lt instead of lte
+            except ValueError:
+                return Response({
+                    'error': 'Invalid end date format (use YYYY-MM-DD)'
+                }, status=400)
+        
+        # Apply additional filters
+        if vehicle_id:
+            penalties = penalties.filter(
+                Q(vehicle__vehicle_id__icontains=vehicle_id) 
+                # Q(vehicle__registration_number__icontains=vehicle_id)
+            )
+        
+        if status:
+            penalties = penalties.filter(status=status.lower())
+        
+        if paid:
+            paid_bool = paid.lower() == 'true'
+            penalties = penalties.filter(paid=paid_bool)
+        
+        if min_overload:
+            try:
+                penalties = penalties.filter(overload_amount__gte=float(min_overload))
+            except ValueError:
+                return Response({
+                    'error': 'Invalid min_overload value'
+                }, status=400)
+        
+        if max_overload:
+            try:
+                penalties = penalties.filter(overload_amount__lte=float(max_overload))
+            except ValueError:
+                return Response({
+                    'error': 'Invalid max_overload value'
+                }, status=400)
+        
+        # Serialize data with more vehicle details
+        data = [{
+            'id': p.id,
+            'vehicle': {
+                'id': p.vehicle.id,
+                'vehicle_id': p.vehicle.vehicle_id,
+                'owner': p.vehicle.owner,
+                'vehicle_name': p.vehicle.vehicle_name
+            },
+            'overload_amount': float(p.overload_amount),
+            'timestamp': p.timestamp,
+            'amount': float(p.amount),
+            'paid': p.paid,
+            'status': p.status,
+            'location': {
+                'latitude': float(p.latitude) if p.latitude else None,
+                'longitude': float(p.longitude) if p.longitude else None
+            },
+            'paid_date': p.paid_date,
+            'reference_number': p.reference_number
+        } for p in penalties]
+        
+        return Response(data)
+    except Exception as e:
+        logger.error(f"Error getting penalties: {str(e)}")
+        return Response({
+            'error': 'Failed to get penalties'
+        }, status=500)
+
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def mark_as_paid(request, penalty_id):
+    """
+    Mark penalty as paid with optional reference number
+    """
+    try:
+        penalty = Penalty.objects.get(id=penalty_id)
+        
+        reference_number = request.data.get('reference_number')
+        notes = request.data.get('notes', '')
+        
+        penalty.paid = True
+        penalty.status = 'paid'
+        penalty.paid_date = datetime.now()
+        
+        if reference_number:
+            penalty.reference_number = reference_number
+        
+        if notes:
+            penalty.notes = notes
+            
+        penalty.save()
+        
+        return Response({
+            'success': True,
+            'penalty_id': penalty.id,
+            'paid_date': penalty.paid_date,
+            'reference_number': penalty.reference_number
+        })
+    except Penalty.DoesNotExist:
+        return Response({
+            'error': 'Penalty not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error marking penalty as paid: {str(e)}")
+        return Response({
+            'error': 'Failed to update penalty status'
+        }, status=500)
+
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def update_penalty_status(request, penalty_id):
+    """
+    Update penalty status (paid/unpaid/disputed/waived)
+    """
+    try:
+        penalty = Penalty.objects.get(id=penalty_id)
+        new_status = request.data.get('status')
+        
+        if new_status not in dict(Penalty.PENALTY_STATUS_CHOICES).keys():
+            return Response({
+                'error': 'Invalid status value'
+            }, status=400)
+            
+        penalty.status = new_status
+        
+        # Automatically update paid field if status is paid
+        if new_status == 'paid':
+            penalty.paid = True
+            penalty.paid_date = datetime.now()
+        elif new_status in ['unpaid', 'disputed']:
+            penalty.paid = False
+            
+        penalty.save()
+        
+        return Response({
+            'success': True,
+            'penalty_id': penalty.id,
+            'new_status': penalty.get_status_display()
+        })
+    except Penalty.DoesNotExist:
+        return Response({
+            'error': 'Penalty not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error updating penalty status: {str(e)}")
+        return Response({
+            'error': 'Failed to update penalty status'
+        }, status=500)
