@@ -111,7 +111,7 @@ function Dashboard() {
           }
         })
       ]);
-console.log(alertsResponse);
+// console.log(alertsResponse);
       const processedVehicles = vehiclesResponse.data.results.map(vehicle => {
         const hasLocation = vehicle.latitude && vehicle.longitude;
         const location = hasLocation 

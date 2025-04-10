@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/penalties/rate/', get_penalty_rate),
     path('api/penalties/', get_penalties),
     path('api/penalties/<int:penalty_id>/mark-paid/', mark_as_paid, name='mark-penalty-paid'),
+    path('api/alerts/<int:pk>/notify/',AlertNotificationView.as_view(), name='notify')
 ]
 
 if settings.DEBUG:

@@ -449,7 +449,8 @@ const PenaltyManagement = () => {
                 <input
                   type="number"
                   name="amount"
-                  value={penaltyRate.rate}
+                  val
+                  
                   onChange={handleRateChange}
                   min="0"
                   step="1000"
